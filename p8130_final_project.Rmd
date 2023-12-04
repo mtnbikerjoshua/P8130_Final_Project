@@ -1,0 +1,63 @@
+---
+title: "p8130_final_project"
+output: github_document
+date: "2023-11-29"
+---
+
+# 
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(MASS) # boxcox
+library(performance) # vif
+library(ggpubr)
+```
+
+```{r}
+# import data
+breastcancer = read_csv("./data/Project_2_data.csv")
+breastcancer = breastcancer|>
+  janitor::clean_names()
+```
+# Fit a MLR Model With All Potential Predictors
+
+```{r}
+# fit a model with all the predictors
+fit1 = lm(survival_months ~ age + race + marital_status + t_stage + n_stage + x6th_stage + differentiate + grade + a_stage + tumor_size + estrogen_status + progesterone_status + regional_node_examined + reginol_node_positive, data = breastcancer)
+
+summary(fit1)
+```
+# Check the Assumption of Equal Variance and Influential Points
+
+```{r}
+# residual vs fitted plot: 
+plot(fit1, which = 1) #funning of the data points
+
+# QQ plot: detect normality of residuals and outliers
+plot(fit1, which = 2) #deviations at the tails 
+
+# Scale-Location: check the assumption of equal variance
+plot(fit1, which = 3)
+
+# Residual v.s. Leverage: identify influential cases
+plot(fit1, which = 4)
+```
+
+
+
+```{r}
+#Box-Cox result indicates that we might not need transformation on y 
+plot(fit1)
+boxcox(fit1)
+```
+# Check for Multicollinearity
+
+```{r}
+# Calculate the variance inflation factor (VIF)
+check_collinearity(fit1) # based on the results, we have to stratify for different stage levels if we include them in our model
+
+```
+
+
