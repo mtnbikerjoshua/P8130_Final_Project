@@ -1,0 +1,98 @@
+---
+title: "EDA_Claire"
+output: html_document
+date: "2023-12-04"
+---
+
+```{r}
+library(ggplot2)
+library(corrplot)
+library(dplyr)
+library(tidyverse)
+library(MASS)
+```
+
+#### Load Dataset
+
+```{r}
+df = read_csv("./data/Project_2_data.csv") |>
+  janitor::clean_names() 
+
+summary(df)
+```
+
+#### Correlation Analysis
+
+```{r}
+df$status = as.numeric(factor(df$status))
+cols_num = which(sapply(df, is.numeric)) 
+correlations = cor(df[cols_num])
+correlations
+```
+
+From the results, we can see that `regional_node_examined` and `reginol_node_positive` have strong relationship with the correlation of 1.
+
+```{r}
+corrplot(correlations, order = "hclust", tl.cex = 1, addrect = 6)
+```
+
+From the plot, we can see that `reginol_node_positive` and `tumore_size` are top factors.
+
+#### Univariate Analysis
+
+```{r}
+prop.table(table(df$status))
+```
+
+From the table, we can see that there are more than 84% of patients will be alive and about 15% patients will be dead.
+
+```{r}
+hist(df$survival_months, probability = T, main = 'original')
+
+# Log Transformation
+hist(log(df$survival_months), probability = T, main = 'log_transformed')
+```
+
+Left skewed distribution.
+
+#### Bivariate analysis
+
+```{r}
+# Numerical Variables
+par(mfrow = c(2,2))
+boxplot(age ~ status, df)
+boxplot(tumor_size ~ status, df)
+boxplot(regional_node_examined ~ status, df)
+boxplot(reginol_node_positive ~ status, df)
+```
+
+```{r}
+# Categorical Variables
+p <- par(mfrow=c(5,2))
+
+df_race = df |> 
+  count(status, race)
+ggplot(df_race, aes(fill = race, y = n, x = status)) + geom_bar(position = 'dodge', stat = 'identity') 
+```
+
+```{r}
+df_marital = df |>
+  count(status, marital_status)
+ggplot(df_marital, aes(fill = marital_status, y = n, x = status)) + geom_bar(position = 'dodge', stat = 'identity') 
+```
+
+```{r}
+df_tstage = df |>
+  count(status, t_stage)
+ggplot(df_tstage, aes(fill = t_stage, y = n, x = status)) + geom_bar(position = 'dodge', stat = 'identity') 
+```
+
+    
+```{r}
+df_nstage = df |>
+  count(status, n_stage)
+ggplot(df_nstage, aes(fill = n_stage, y = n, x= status)) + geom_bar(position = 'dodge', stat = 'identity') 
+```
+
+ 
+
