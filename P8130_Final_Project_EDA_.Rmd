@@ -68,8 +68,6 @@ boxplot(reginol_node_positive ~ status, df)
 
 ```{r}
 # Categorical Variables
-p <- par(mfrow=c(5,2))
-
 df_race = df |> 
   count(status, race)
 ggplot(df_race, aes(fill = race, y = n, x = status)) + geom_bar(position = 'dodge', stat = 'identity') 
