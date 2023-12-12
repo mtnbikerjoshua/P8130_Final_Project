@@ -1,0 +1,15 @@
+---
+title: "Untitled"
+output: html_document23
+
+date: "2023-12-12"
+---
+
+```{r}
+usethis::use_git_config(user.name = "Yuxin Yin", user.email = "yy3439@cumc.columbia.edu")
+```
+
+```{r}
+gitcreds::gitcreds_set()
+```
+
