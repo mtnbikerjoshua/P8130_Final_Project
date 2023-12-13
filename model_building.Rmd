@@ -1,0 +1,233 @@
+---
+title: "Model Building"
+output: github_document
+date: "2023-12-12"
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(dplyr)
+library(MASS)
+library(ggplot2)
+library(corrplot)
+library(leaps)
+library(glmnet)
+library(igraph)
+library(arules)
+library(caret)
+
+```
+# Data Cleaning
+
+```{r}
+# import data
+breastcancer = read_csv("./data/Project_2_data.csv")
+
+#Data Cleaning
+breastcancer_1 = breastcancer|>
+  janitor::clean_names()|>
+   mutate(
+    race = as_factor(race),
+    marital_status = factor(marital_status, levels = c("Single", "Married", "Divorced", "Separated", "Widowed")),
+    t_stage = factor(t_stage, levels = c("T1", "T2", "T3", "T4")),
+    n_stage = factor(n_stage, levels = c("N1", "N2", "N3")),
+    x6th_stage = factor(x6th_stage, levels = c("IIA", "IIB", "IIIA", "IIIB", "IIIC")),
+    differentiate = factor(differentiate, levels = c("Moderately differentiated", "Poorly differentiated", "Undifferentiated", "Well differentiated")),
+    grade = factor(grade, levels = c("1", "2", "3", "anaplastic; Grade IV")),
+    a_stage = factor(a_stage, levels = c("Distant", "Regional")),
+    estrogen_status = as_factor(estrogen_status),
+    progesterone_status = as_factor(progesterone_status),
+    status = ifelse(status == "Dead", 1, 0),
+    status = as_factor(status))
+
+breastcancer_clean = breastcancer_1|>
+  mutate(node_positive_prop = reginol_node_positive/regional_node_examined,
+         node_positive_prop = round(node_positive_prop, 4))
+  
+breastcancer_clean
+```
+
+# Exploratory Analysis
+
+## Checking Association Between Numerical Variables
+
+```{r}
+# exploratory
+pairs(breastcancer_clean)
+
+# correlation plot
+breastcancer_num = breastcancer_clean|>
+  dplyr::select(age, tumor_size, regional_node_examined, reginol_node_positive, node_positive_prop)
+
+corrplot(cor(breastcancer_num), type = "upper", diag = FALSE)
+
+# Boxplots for each variable
+par(mfrow=c(2,3))
+boxplot(breastcancer_clean$age, main='Age')
+boxplot(breastcancer_clean$tumor_size, main='Tumor Size')
+boxplot(breastcancer_clean$regional_node_examined,main='Node Examined' )
+boxplot(breastcancer_clean$reginol_node_positive, main='Positive Node')
+boxplot(breastcancer_clean$node_positive_prop, main='Proportion of Positive Nodes')
+```
+
+* `tumor_size` has substantial amounts of outliers. <br>
+* `reginol_node_positive` and `node_positive_prop` are highly correlated. 
+
+## Checking Association Between Categorical Variables
+
+```{r}
+breastcancer_cag = breastcancer_clean|>
+  dplyr::select(-age, -tumor_size, -regional_node_examined, -reginol_node_positive, -node_positive_prop, -survival_months)
+
+rules <- apriori(breastcancer_cag, parameter = list(supp = 0.001, conf = 0.8))
+
+# Inspect the top 5 rules
+inspect(head(sort(rules, by = "confidence"), 5))
+```
+
+
+# Checking Logistic Regression Assumption
+
+```{r}
+
+```
+
+
+# Fitting Model
+
+## Backward Selection
+```{r}
+breastcancer_clean1 <- breastcancer_clean|>
+  drop_na()
+
+full_model <- glm(status ~ ., data = breastcancer_clean, family = binomial())
+
+summary(full_model)
+```
+
+
+
+```{r}
+backward_model <- step(full_model, direction = "backward")
+```
+
+```{r}
+summary(backward_model)
+```
+
+## Forward Selection
+
+```{r}
+null_model <- glm(status ~ 1, data = breastcancer_clean, family = binomial())
+forward_model <- step(null_model, scope = list(lower = null_model, upper = full_model), direction = "forward")
+```
+
+```{r}
+summary(forward_model)
+```
+
+### Discussion
+AIC of backward selection is 2992.2 compared to AIC = 2996.4 for forward selection. The difference in AIC is approximately 4 for the backward and forward selction models. This difference suggests less support for the model with higher AIC. The forward model is slightly more complex than the backward model. In addition, the backward selection model is a nested version of the forward selection model. 
+
+## LASSO
+
+```{r}
+#split the data
+set.seed(123)
+breastcancer_test = breastcancer_clean|>
+  dplyr::select(-survival_months)
+split <- createDataPartition(breastcancer_test$status, p = .7, list = FALSE)
+train_data <- breastcancer_test[split, ]
+test_data <- breastcancer_test[-split, ]
+
+```
+
+```{r}
+
+X <- as.matrix(train_data[, -which(names(train_data) == "status")])
+y <- train_data$status
+
+set.seed(123)
+lasso_model <- glmnet(X, y, alpha = 1, family = "binomial")
+
+#determine the best lambda
+cv_lasso <- cv.glmnet(X, y, alpha = 1, family = "binomial", type.measure = "auc")
+best_lambda <- cv_lasso$lambda.min
+
+best_coefs <- coef(cv_lasso, s = best_lambda)
+
+# prediction
+test_data1 = test_data|> dplyr::select(-status)
+predictions <- predict(cv_lasso, newx = as.matrix(test_data1), s = best_lambda, type = "response")
+```
+
+## Evaluating the LASSO Model
+
+```{r}
+library(pROC)
+
+# For logistic regression, convert log-odds to probabilities
+probabilities <- exp(predictions) / (1 + exp(predictions))
+
+roc_curve <- roc(response = as.matrix(test_data$status), predictor = as.numeric(probabilities) )
+
+# auc
+auc(roc_curve)
+
+#plot the roc curve
+
+plot(roc_curve, main = "ROC Curve", col = "green")
+
+
+
+```
+### Comment
+
+AUC = 0.6916
+Only 4 predictors
+
+## Ridge Regression
+
+```{r}
+set.seed(123)
+ridge_model <- glmnet(X, y, alpha = 0, family = "binomial")
+
+#determine the best lambda
+cv_ridge <- cv.glmnet(X, y, alpha = 0, family = "binomial", type.measure = "auc")
+best_ridge_lambda <- cv_ridge$lambda.min
+
+best_ridge_coefs <- coef(cv_ridge, s = best_ridge_lambda)
+
+# prediction
+test_data1 = test_data|> dplyr::select(-status)
+prediction_ridge <- predict(cv_ridge, newx = as.matrix(test_data1), s = best_ridge_lambda, type = "response")
+```
+
+## Evaluating the Ridge Model
+
+```{r}
+# For logistic regression, convert log-odds to probabilities
+prob_ridge <- exp(prediction_ridge) / (1 + exp(prediction_ridge))
+
+roc_curve_ridge <- roc(response = as.matrix(test_data$status), predictor = as.numeric(prob_ridge) )
+
+# auc
+auc(roc_curve_ridge)
+
+#plot the roc curve
+
+plot(roc_curve_ridge, main = "ROC Curve", col = "blue")
+
+```
+
+### Comment 
+
+AUC = 0.6897
+Takes 5 predictors into consideration.
+
+
+## Elastic Net
+
+
+
