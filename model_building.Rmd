@@ -125,10 +125,9 @@ forward_model <- step(null_model, scope = list(lower = null_model, upper = full_
 
 ```{r}
 summary(forward_model)
-
 ```
 
-## Discussion
+### Discussion
 AIC of backward selection is 2992.2 compared to AIC = 2996.4 for forward selection. The difference in AIC is approximately 4 for the backward and forward selction models. This difference suggests less support for the model with higher AIC. The forward model is slightly more complex than the backward model. In addition, the backward selection model is a nested version of the forward selection model. 
 
 ## LASSO
@@ -183,7 +182,52 @@ plot(roc_curve, main = "ROC Curve", col = "green")
 
 
 ```
+### Comment
 
+AUC = 0.6916
+Only 4 predictors
+
+## Ridge Regression
+
+```{r}
+set.seed(123)
+ridge_model <- glmnet(X, y, alpha = 0, family = "binomial")
+
+#determine the best lambda
+cv_ridge <- cv.glmnet(X, y, alpha = 0, family = "binomial", type.measure = "auc")
+best_ridge_lambda <- cv_ridge$lambda.min
+
+best_ridge_coefs <- coef(cv_ridge, s = best_ridge_lambda)
+
+# prediction
+test_data1 = test_data|> dplyr::select(-status)
+prediction_ridge <- predict(cv_ridge, newx = as.matrix(test_data1), s = best_ridge_lambda, type = "response")
+```
+
+## Evaluating the Ridge Model
+
+```{r}
+# For logistic regression, convert log-odds to probabilities
+prob_ridge <- exp(prediction_ridge) / (1 + exp(prediction_ridge))
+
+roc_curve_ridge <- roc(response = as.matrix(test_data$status), predictor = as.numeric(prob_ridge) )
+
+# auc
+auc(roc_curve_ridge)
+
+#plot the roc curve
+
+plot(roc_curve_ridge, main = "ROC Curve", col = "blue")
+
+```
+
+### Comment 
+
+AUC = 0.6897
+Takes 5 predictors into consideration.
+
+
+## Elastic Net
 
 
 

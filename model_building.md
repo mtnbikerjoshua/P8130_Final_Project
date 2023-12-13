@@ -227,9 +227,9 @@ rules <- apriori(breastcancer_cag, parameter = list(supp = 0.001, conf = 0.8))
     ## set transactions ...[36 item(s), 4024 transaction(s)] done [0.00s].
     ## sorting and recoding items ... [36 item(s)] done [0.00s].
     ## creating transaction tree ... done [0.00s].
-    ## checking subsets of size 1 2 3 4 5 6 7 8 9 10 done [0.06s].
-    ## writing ... [424628 rule(s)] done [0.09s].
-    ## creating S4 object  ... done [0.14s].
+    ## checking subsets of size 1 2 3 4 5 6 7 8 9 10 done [0.08s].
+    ## writing ... [424628 rule(s)] done [0.11s].
+    ## creating S4 object  ... done [0.18s].
 
 ``` r
 # Inspect the top 5 rules
@@ -718,7 +718,7 @@ summary(forward_model)
     ## 
     ## Number of Fisher Scoring iterations: 6
 
-## Discussion
+### Discussion
 
 AIC of backward selection is 2992.2 compared to AIC = 2996.4 for forward
 selection. The difference in AIC is approximately 4 for the backward and
@@ -779,4 +779,52 @@ auc(roc_curve)
 plot(roc_curve, main = "ROC Curve", col = "green")
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](model_building_files/figure-gfm/unnamed-chunk-13-1.png)<!-- --> \###
+Comment
+
+AUC = 0.6916 Only 4 predictors
+
+## Ridge Regression
+
+``` r
+set.seed(123)
+ridge_model <- glmnet(X, y, alpha = 0, family = "binomial")
+
+#determine the best lambda
+cv_ridge <- cv.glmnet(X, y, alpha = 0, family = "binomial", type.measure = "auc")
+best_ridge_lambda <- cv_ridge$lambda.min
+
+best_ridge_coefs <- coef(cv_ridge, s = best_ridge_lambda)
+
+# prediction
+test_data1 = test_data|> dplyr::select(-status)
+prediction_ridge <- predict(cv_ridge, newx = as.matrix(test_data1), s = best_ridge_lambda, type = "response")
+```
+
+## Evaluating the Ridge Model
+
+``` r
+# For logistic regression, convert log-odds to probabilities
+prob_ridge <- exp(prediction_ridge) / (1 + exp(prediction_ridge))
+
+roc_curve_ridge <- roc(response = as.matrix(test_data$status), predictor = as.numeric(prob_ridge) )
+
+# auc
+auc(roc_curve_ridge)
+```
+
+    ## Area under the curve: 0.6897
+
+``` r
+#plot the roc curve
+
+plot(roc_curve_ridge, main = "ROC Curve", col = "blue")
+```
+
+![](model_building_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+
+### Comment
+
+AUC = 0.6897 Takes 5 predictors into consideration.
+
+## Elastic Net
