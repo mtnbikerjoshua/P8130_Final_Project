@@ -17,6 +17,8 @@ library(igraph)
 library(arules)
 library(caret)
 library(pROC)
+library(performance) # vif
+library(ggpubr)
 
 ```
 # Data Cleaning
@@ -140,6 +142,8 @@ print(predictions_backward)
 roc_curve_backward <- roc(response = as.matrix(test_data$status), predictor = as.numeric(predictions_backward) )
 auc(roc_curve_backward)
 
+#plot the roc curve
+plot(roc_curve_backward, main = "ROC Curve", col = "yellow")
 ```
 
 
@@ -165,9 +169,38 @@ print(predictions_forward)
 roc_curve_forward <- roc(response = as.matrix(test_data$status), predictor = as.numeric(predictions_forward) )
 auc(roc_curve_forward)
 
+#plot the roc curve
+plot(roc_curve_forward, main = "ROC Curve", col = "red")
+```
+
+```{r}
+check_collinearity(forward_model)
 ```
 
 
+```{r}
+breastcancer_for = breastcancer_test|>
+  dplyr::select(-t_stage)
+
+null_model_1 <- glm(status ~ 1, data = breastcancer_for, family = binomial())
+full_model_1 <- glm(status ~ ., data = breastcancer_for, family = binomial())
+forward_model_1 <- step(null_model_1, scope = list(lower = null_model_1, upper = full_model_1), direction = "forward")
+
+```
+```{r}
+predictions_forward_1 <- predict(forward_model_1, newdata = test_data1)
+
+# Viewing predictions
+print(predictions_forward_1)
+roc_curve_forward_1 <- roc(response = as.matrix(test_data$status), predictor = as.numeric(predictions_forward_1) )
+auc(roc_curve_forward_1)
+
+#plot the roc curve
+plot(roc_curve_forward_1, main = "ROC Curve", col = "red")
+```
+```{r}
+check_collinearity(forward_model_1)
+```
 
 ### Discussion
 AIC of backward selection is 2992.2 compared to AIC = 2996.4 for forward selection. The difference in AIC is approximately 4 for the backward and forward selction models. This difference suggests less support for the model with higher AIC. The forward model is slightly more complex than the backward model. In addition, the backward selection model is a nested version of the forward selection model. 
