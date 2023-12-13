@@ -1,5 +1,5 @@
 ---
-title: "p8130_final_project"
+title: "Data Cleaning"
 output: github_document
 date: "2023-11-29"
 ---
@@ -18,14 +18,35 @@ library(ggpubr)
 ```{r}
 # import data
 breastcancer = read_csv("./data/Project_2_data.csv")
-breastcancer = breastcancer|>
-  janitor::clean_names()
+
+#Data Cleaning
+breastcancer_1 = breastcancer|>
+  janitor::clean_names()|>
+   mutate(
+    race = as_factor(race),
+    marital_status = factor(marital_status, levels = c("Single", "Married", "Divorced", "Separated", "Widowed")),
+    t_stage = factor(t_stage, levels = c("T1", "T2", "T3", "T4")),
+    n_stage = factor(n_stage, levels = c("N1", "N2", "N3")),
+    x6th_stage = factor(x6th_stage, levels = c("IIA", "IIB", "IIIA", "IIIB", "IIIC")),
+    differentiate = factor(differentiate, levels = c("Moderately differentiated", "Poorly differentiated", "Undifferentiated", "Well differentiated")),
+    grade = factor(grade, levels = c("1", "2", "3", "anaplastic; Grade IV")),
+    a_stage = factor(a_stage, levels = c("Distant", "Regional")),
+    estrogen_status = as_factor(estrogen_status),
+    progesterone_status = as_factor(progesterone_status),
+    status = ifelse(status == "Dead", 1, 0),
+    status = as_factor(status))
+
+breastcancer_clean = breastcancer_1|>
+  mutate(node_positive_prop = reginol_node_positive/regional_node_examined,
+         node_positive_prop = round(node_positive_prop, 4))
+  
+breastcancer_clean
 ```
 # Fit a MLR Model With All Potential Predictors
 
 ```{r}
 # fit a model with all the predictors
-fit1 = lm(survival_months ~ age + race + marital_status + t_stage + n_stage + x6th_stage + differentiate + grade + a_stage + tumor_size + estrogen_status + progesterone_status + regional_node_examined + reginol_node_positive, data = breastcancer)
+fit1 = lm(survival_months ~ age + race + marital_status + t_stage + n_stage + x6th_stage + differentiate + grade + a_stage + tumor_size + estrogen_status + progesterone_status + regional_node_examined + reginol_node_positive, data = breastcancer_clean)
 
 summary(fit1)
 ```
