@@ -1,4 +1,5 @@
 library(tidyverse)
+library(car)
 library(jcreg)
 set.seed(1111)
 
@@ -27,18 +28,38 @@ comp_bar <- function(data, x) {
     theme_classic()
 }
 
-cancer_cat_varnames <- c("race", "marital_status", "t_stage", "n_stage", 
-                         "x6th_stage", "differentiate", "grade", "a_stage",
-                         "estrogen_status", "progesterone_status")
+cancer_cat_varnames <- cancer_train %>%
+  select(where(is.factor)) %>%
+  colnames()
 comp_bar_plots <- map(cancer_cat_varnames, \(var) comp_bar(cancer_train, var))
 do.call(gridExtra::grid.arrange, comp_bar_plots)
 
 
+#Check for multicolinearity
+cancer_train %>% 
+  select(where(is.numeric)) %>%
+  cor()
 
+cancer %>%
+  select(where(is.numeric)) %>%
+  cor_graphic()
 
-# cancer %>%
-#   select(where(is.numeric) | where(is.factor)) %>%
-#   cor_graphic()
-# 
-# model <- glm(status ~ age + race+ t_stage + grade, 
-#              family=binomial(link='logit'), data=cancer)
+cancer_cramerV <- matrix(nrow = length(cancer_cat_varnames), 
+                         ncol = length(cancer_cat_varnames))
+colnames(cancer_cramerV) <- cancer_cat_varnames
+rownames(cancer_cramerV) <- cancer_cat_varnames
+for(rowvar in cancer_cat_varnames) {
+  for(colvar in cancer_cat_varnames) {
+    cancer_cramerV[rowvar, colvar] <- 
+      table(cancer_train[[rowvar]], cancer_train[[colvar]]) %>%
+      rcompanion::cramerV()
+  }
+}
+cancer_cramerV
+
+cancer_glm <- glm(status ~ age + race + marital_status + x6th_stage +
+                    differentiate + a_stage + tumor_size +
+                    estrogen_status + progesterone_status +
+                    regional_node_examined + reginol_node_positive,
+                  family=binomial(link='logit'), data=cancer_train)
+vif(cancer_glm)
