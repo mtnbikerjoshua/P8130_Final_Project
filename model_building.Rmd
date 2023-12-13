@@ -5,7 +5,127 @@ date: "2023-12-12"
 ---
 
 ```{r}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(dplyr)
+library(MASS)
+library(ggplot2)
+library(corrplot)
+library(leaps)
+library(glmnet)
+library(igraph)
+library(arules)
+
+```
+# Data Cleaning
+
+```{r}
+# import data
+breastcancer = read_csv("./data/Project_2_data.csv")
+
+#Data Cleaning
+breastcancer_1 = breastcancer|>
+  janitor::clean_names()|>
+   mutate(
+    race = as_factor(race),
+    marital_status = factor(marital_status, levels = c("Single", "Married", "Divorced", "Separated", "Widowed")),
+    t_stage = factor(t_stage, levels = c("T1", "T2", "T3", "T4")),
+    n_stage = factor(n_stage, levels = c("N1", "N2", "N3")),
+    x6th_stage = factor(x6th_stage, levels = c("IIA", "IIB", "IIIA", "IIIB", "IIIC")),
+    differentiate = factor(differentiate, levels = c("Moderately differentiated", "Poorly differentiated", "Undifferentiated", "Well differentiated")),
+    grade = factor(grade, levels = c("1", "2", "3", "anaplastic; Grade IV")),
+    a_stage = factor(a_stage, levels = c("Distant", "Regional")),
+    estrogen_status = as_factor(estrogen_status),
+    progesterone_status = as_factor(progesterone_status),
+    status = ifelse(status == "Dead", 1, 0),
+    status = as_factor(status))
+
+breastcancer_clean = breastcancer_1|>
+  mutate(node_positive_prop = reginol_node_positive/regional_node_examined,
+         node_positive_prop = round(node_positive_prop, 4))
+  
+breastcancer_clean
+```
+
+# Exploratory Analysis
+
+## Checking Association Between Numerical Variables
+
+```{r}
+# exploratory
+pairs(breastcancer_clean)
+
+# correlation plot
+breastcancer_num = breastcancer_clean|>
+  dplyr::select(age, tumor_size, regional_node_examined, reginol_node_positive, node_positive_prop)
+
+corrplot(cor(breastcancer_num), type = "upper", diag = FALSE)
+
+# Boxplots for each variable
+par(mfrow=c(2,3))
+boxplot(breastcancer_clean$age, main='Age')
+boxplot(breastcancer_clean$tumor_size, main='Tumor Size')
+boxplot(breastcancer_clean$regional_node_examined,main='Node Examined' )
+boxplot(breastcancer_clean$reginol_node_positive, main='Positive Node')
+boxplot(breastcancer_clean$node_positive_prop, main='Proportion of Positive Nodes')
+```
+
+* `tumor_size` has substantial amounts of outliers. <br>
+* `reginol_node_positive` and `node_positive_prop` are highly correlated. 
+
+## Checking Association Between Categorical Variables
+
+```{r}
+breastcancer_cag = breastcancer_clean|>
+  dplyr::select(-age, -tumor_size, -regional_node_examined, -reginol_node_positive, -node_positive_prop, -survival_months)
+
+rules <- apriori(breastcancer_cag, parameter = list(supp = 0.001, conf = 0.8))
+
+# Inspect the top 5 rules
+inspect(head(sort(rules, by = "confidence"), 5))
+```
+
+
+# Checking Logistic Regression Assumption
+
+```{r}
 
 ```
 
 
+# Fitting Model
+
+## Backward Selection
+```{r}
+breastcancer_clean1 <- breastcancer_clean|>
+  drop_na()
+
+full_model <- glm(status ~ ., data = breastcancer_clean, family = binomial())
+
+summary(full_model)
+```
+
+
+
+```{r}
+backward_model <- step(full_model, direction = "backward")
+```
+
+```{r}
+summary(backward_model)
+```
+
+## Forward Selection
+
+```{r}
+null_model <- glm(status ~ 1, data = breastcancer_clean, family = binomial())
+forward_model <- step(null_model, scope = list(lower = null_model, upper = full_model), direction = "forward")
+```
+
+```{r}
+summary(forward_model)
+
+```
+
+## Discussion
+AIC of backward selection is 2992.2 compared to AIC = 2996.4 for forward selection. The difference in AIC is approximately 4 for the backward and forward selction models. This difference suggests less support for the model with higher AIC. Also, 
