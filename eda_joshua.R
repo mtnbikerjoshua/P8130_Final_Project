@@ -31,6 +31,7 @@ comp_bar <- function(data, x) {
 cancer_cat_varnames <- cancer_train %>%
   select(where(is.factor)) %>%
   colnames()
+
 comp_bar_plots <- map(cancer_cat_varnames, \(var) comp_bar(cancer_train, var))
 do.call(gridExtra::grid.arrange, comp_bar_plots)
 
@@ -43,6 +44,7 @@ cancer_train %>%
 cancer %>%
   select(where(is.numeric)) %>%
   cor_graphic()
+
 
 cancer_cramerV <- matrix(nrow = length(cancer_cat_varnames), 
                          ncol = length(cancer_cat_varnames))
@@ -57,9 +59,27 @@ for(rowvar in cancer_cat_varnames) {
 }
 cancer_cramerV
 
+cancer_con_varnames <- cancer_train %>%
+  select(-id) %>%
+  select(where(is.numeric)) %>%
+  colnames()
+cancer_eta2 <- matrix(nrow = length(cancer_cat_varnames), 
+                         ncol = length(cancer_con_varnames))
+colnames(cancer_eta2) <- cancer_con_varnames
+rownames(cancer_eta2) <- cancer_cat_varnames
+for(rowvar in cancer_cat_varnames) {
+  for(colvar in cancer_con_varnames) {
+    cancer_eta2[rowvar, colvar] <-
+      lm(cancer_train[[colvar]] ~ cancer_train[[rowvar]]) %>%
+      effectsize::eta_squared(partial = FALSE) %>%
+      .$Eta2
+  }
+}
+cancer_eta2
+
 cancer_glm <- glm(status ~ age + race + marital_status + x6th_stage +
                     differentiate + a_stage + tumor_size +
                     estrogen_status + progesterone_status +
-                    regional_node_examined + reginol_node_positive,
+                    regional_node_examined,
                   family=binomial(link='logit'), data=cancer_train)
 vif(cancer_glm)
