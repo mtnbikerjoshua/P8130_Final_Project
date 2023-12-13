@@ -15,6 +15,7 @@ library(leaps)
 library(glmnet)
 library(igraph)
 library(arules)
+library(caret)
 
 ```
 # Data Cleaning
@@ -128,4 +129,61 @@ summary(forward_model)
 ```
 
 ## Discussion
-AIC of backward selection is 2992.2 compared to AIC = 2996.4 for forward selection. The difference in AIC is approximately 4 for the backward and forward selction models. This difference suggests less support for the model with higher AIC. Also, 
+AIC of backward selection is 2992.2 compared to AIC = 2996.4 for forward selection. The difference in AIC is approximately 4 for the backward and forward selction models. This difference suggests less support for the model with higher AIC. The forward model is slightly more complex than the backward model. In addition, the backward selection model is a nested version of the forward selection model. 
+
+## LASSO
+
+```{r}
+#split the data
+set.seed(123)
+breastcancer_test = breastcancer_clean|>
+  dplyr::select(-survival_months)
+split <- createDataPartition(breastcancer_test$status, p = .7, list = FALSE)
+train_data <- breastcancer_test[split, ]
+test_data <- breastcancer_test[-split, ]
+
+```
+
+```{r}
+
+X <- as.matrix(train_data[, -which(names(train_data) == "status")])
+y <- train_data$status
+
+set.seed(123)
+lasso_model <- glmnet(X, y, alpha = 1, family = "binomial")
+
+#determine the best lambda
+cv_lasso <- cv.glmnet(X, y, alpha = 1, family = "binomial", type.measure = "auc")
+best_lambda <- cv_lasso$lambda.min
+
+best_coefs <- coef(cv_lasso, s = best_lambda)
+
+# prediction
+test_data1 = test_data|> dplyr::select(-status)
+predictions <- predict(cv_lasso, newx = as.matrix(test_data1), s = best_lambda, type = "response")
+```
+
+## Evaluating the LASSO Model
+
+```{r}
+library(pROC)
+
+# For logistic regression, convert log-odds to probabilities
+probabilities <- exp(predictions) / (1 + exp(predictions))
+
+roc_curve <- roc(response = as.matrix(test_data$status), predictor = as.numeric(probabilities) )
+
+# auc
+auc(roc_curve)
+
+#plot the roc curve
+
+plot(roc_curve, main = "ROC Curve", col = "green")
+
+
+
+```
+
+
+
+

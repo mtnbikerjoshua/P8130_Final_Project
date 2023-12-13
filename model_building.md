@@ -102,6 +102,18 @@ library(arules)
     ## 
     ##     abbreviate, write
 
+``` r
+library(caret)
+```
+
+    ## Loading required package: lattice
+    ## 
+    ## Attaching package: 'caret'
+    ## 
+    ## The following object is masked from 'package:purrr':
+    ## 
+    ##     lift
+
 # Data Cleaning
 
 ``` r
@@ -215,9 +227,9 @@ rules <- apriori(breastcancer_cag, parameter = list(supp = 0.001, conf = 0.8))
     ## set transactions ...[36 item(s), 4024 transaction(s)] done [0.00s].
     ## sorting and recoding items ... [36 item(s)] done [0.00s].
     ## creating transaction tree ... done [0.00s].
-    ## checking subsets of size 1 2 3 4 5 6 7 8 9 10 done [0.08s].
-    ## writing ... [424628 rule(s)] done [0.10s].
-    ## creating S4 object  ... done [0.19s].
+    ## checking subsets of size 1 2 3 4 5 6 7 8 9 10 done [0.06s].
+    ## writing ... [424628 rule(s)] done [0.09s].
+    ## creating S4 object  ... done [0.14s].
 
 ``` r
 # Inspect the top 5 rules
@@ -711,4 +723,60 @@ summary(forward_model)
 AIC of backward selection is 2992.2 compared to AIC = 2996.4 for forward
 selection. The difference in AIC is approximately 4 for the backward and
 forward selction models. This difference suggests less support for the
-model with higher AIC. Also,
+model with higher AIC. The forward model is slightly more complex than
+the backward model. In addition, the backward selection model is a
+nested version of the forward selection model.
+
+## LASSO
+
+``` r
+#split the data
+set.seed(123)
+breastcancer_test = breastcancer_clean|>
+  dplyr::select(-survival_months)
+split <- createDataPartition(breastcancer_test$status, p = .7, list = FALSE)
+train_data <- breastcancer_test[split, ]
+test_data <- breastcancer_test[-split, ]
+```
+
+``` r
+X <- as.matrix(train_data[, -which(names(train_data) == "status")])
+y <- train_data$status
+
+set.seed(123)
+lasso_model <- glmnet(X, y, alpha = 1, family = "binomial")
+
+#determine the best lambda
+cv_lasso <- cv.glmnet(X, y, alpha = 1, family = "binomial", type.measure = "auc")
+best_lambda <- cv_lasso$lambda.min
+
+best_coefs <- coef(cv_lasso, s = best_lambda)
+
+# prediction
+test_data1 = test_data|> dplyr::select(-status)
+predictions <- predict(cv_lasso, newx = as.matrix(test_data1), s = best_lambda, type = "response")
+```
+
+## Evaluating the LASSO Model
+
+``` r
+library(pROC)
+
+# For logistic regression, convert log-odds to probabilities
+probabilities <- exp(predictions) / (1 + exp(predictions))
+
+roc_curve <- roc(response = as.matrix(test_data$status), predictor = as.numeric(probabilities) )
+
+# auc
+auc(roc_curve)
+```
+
+    ## Area under the curve: 0.6916
+
+``` r
+#plot the roc curve
+
+plot(roc_curve, main = "ROC Curve", col = "green")
+```
+
+![](model_building_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
