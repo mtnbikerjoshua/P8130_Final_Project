@@ -16,6 +16,7 @@ library(glmnet)
 library(igraph)
 library(arules)
 library(caret)
+library(pROC)
 
 ```
 # Data Cleaning
@@ -96,12 +97,26 @@ inspect(head(sort(rules, by = "confidence"), 5))
 
 # Fitting Model
 
+
+## Training Data and Test Data
+
+```{r}
+#split the data
+set.seed(123)
+breastcancer_test = breastcancer_clean|>
+  dplyr::select(-survival_months)
+split <- createDataPartition(breastcancer_test$status, p = .7, list = FALSE)
+train_data <- breastcancer_test[split, ]
+test_data <- breastcancer_test[-split, ]
+test_data1 = test_data|> dplyr::select(-status)
+```
+
 ## Backward Selection
 ```{r}
-breastcancer_clean1 <- breastcancer_clean|>
+breastcancer_clean1 <- breastcancer_test|>
   drop_na()
 
-full_model <- glm(status ~ ., data = breastcancer_clean, family = binomial())
+full_model <- glm(status ~ ., data = breastcancer_test, family = binomial())
 
 summary(full_model)
 ```
@@ -116,16 +131,43 @@ backward_model <- step(full_model, direction = "backward")
 summary(backward_model)
 ```
 
+## Backward Model Predictions
+```{r}
+predictions_backward <- predict(backward_model, newdata = test_data1)
+
+# Viewing predictions
+print(predictions_backward)
+roc_curve_backward <- roc(response = as.matrix(test_data$status), predictor = as.numeric(predictions_backward) )
+auc(roc_curve_backward)
+
+```
+
+
+
+
+
 ## Forward Selection
 
 ```{r}
-null_model <- glm(status ~ 1, data = breastcancer_clean, family = binomial())
+null_model <- glm(status ~ 1, data = breastcancer_test, family = binomial())
 forward_model <- step(null_model, scope = list(lower = null_model, upper = full_model), direction = "forward")
 ```
 
 ```{r}
 summary(forward_model)
 ```
+
+```{r}
+predictions_forward <- predict(forward_model, newdata = test_data1)
+
+# Viewing predictions
+print(predictions_forward)
+roc_curve_forward <- roc(response = as.matrix(test_data$status), predictor = as.numeric(predictions_forward) )
+auc(roc_curve_forward)
+
+```
+
+
 
 ### Discussion
 AIC of backward selection is 2992.2 compared to AIC = 2996.4 for forward selection. The difference in AIC is approximately 4 for the backward and forward selction models. This difference suggests less support for the model with higher AIC. The forward model is slightly more complex than the backward model. In addition, the backward selection model is a nested version of the forward selection model. 
@@ -228,6 +270,7 @@ Takes 5 predictors into consideration.
 
 
 ## Elastic Net
+
 
 
 
