@@ -5,7 +5,7 @@ date: "2023-12-15"
 output: github_document
 ---
 
-```{r}
+```{r, message = FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 library(tidyverse)
 library(dplyr)
@@ -52,14 +52,14 @@ breastcancer_clean
 
 ## EDA
 
-### Descriptive Statistics
-
 ```{r}
 # Descriptive table with summary statistics
 summary(breastcancer_clean) |>
   knitr::kable()
 breastcancer_clean |> 
   summarise(across(where(is.numeric), list(mean = ~mean(., na.rm = TRUE), sd = ~sd(., na.rm = TRUE)))) |>
+  knitr::kable()
+prop.table(table(breastcancer_clean$status)) |>
   knitr::kable()
 ```
 
@@ -70,6 +70,9 @@ cor_matrix = breastcancer_clean |>
   select_if(is.numeric) |>
   cor() 
 corrplot::corrplot(cor_matrix, type = "upper", diag = FALSE)
+
+# Heat map
+corrplot::corrplot(cor_matrix, method = "color")
 ```
 
 ```{r}
@@ -80,8 +83,8 @@ pairs(breastcancer_clean)
 ```{r}
 # Histograms and density plots
 breastcancer_clean |>
-  ggplot(aes(x = age, y = ..density.., fill = "skyblue", alpha = 0.5)) +
-  geom_histogram(binwidth = 0.3, colour = "black", alpha = 0.1) +
+  ggplot(aes(x = age, y = ..density.., fill = "purple", alpha = 0.5)) +
+  geom_histogram(binwidth = 0.3, colour = "lightblue", alpha = 0.1) +
   geom_density(alpha = 0.4) +
   labs(
     x = "Age",
@@ -91,8 +94,8 @@ breastcancer_clean |>
   theme(legend.position = "none")
 
 breastcancer_clean |>
-  ggplot(aes(x = tumor_size, y = ..density.., fill = "skyblue", alpha = 0.5)) +
-  geom_histogram(binwidth = 0.3, colour = "black", alpha = 0.1) +
+  ggplot(aes(x = tumor_size, y = ..density.., fill = "purple", alpha = 0.5)) +
+  geom_histogram(binwidth = 0.3, colour = "lightblue", alpha = 0.1) +
   geom_density(alpha = 0.4) +
   labs(
     x = "Age",
@@ -102,8 +105,8 @@ breastcancer_clean |>
   theme(legend.position = "none")
 
 breastcancer_clean |>
-  ggplot(aes(x = regional_node_examined, y = ..density.., fill = "skyblue", alpha = 0.5)) +
-  geom_histogram(binwidth = 0.3, colour = "black", alpha = 0.1) +
+  ggplot(aes(x = regional_node_examined, y = ..density.., fill = "purple", alpha = 0.5)) +
+  geom_histogram(binwidth = 0.3, colour = "lightblue", alpha = 0.1) +
   geom_density(alpha = 0.4) +
   labs(
     x = "Age",
@@ -113,8 +116,8 @@ breastcancer_clean |>
   theme(legend.position = "none")
 
 breastcancer_clean |>
-  ggplot(aes(x = reginol_node_positive, y = ..density.., fill = "skyblue", alpha = 0.5)) +
-  geom_histogram(binwidth = 0.3, colour = "black", alpha = 0.1) +
+  ggplot(aes(x = reginol_node_positive, y = ..density.., fill = "purple", alpha = 0.5)) +
+  geom_histogram(binwidth = 0.3, colour = "lightblue", alpha = 0.1) +
   geom_density(alpha = 0.4) +
   labs(
     x = "Age",
@@ -124,8 +127,8 @@ breastcancer_clean |>
   theme(legend.position = "none")
 
 breastcancer_clean |>
-  ggplot(aes(x = node_positive_prop, y = ..density.., fill = "skyblue", alpha = 0.5)) +
-  geom_histogram(binwidth = 0.3, colour = "black", alpha = 0.1) +
+  ggplot(aes(x = node_positive_prop, y = ..density.., fill = "purple", alpha = 0.5)) +
+  geom_histogram(binwidth = 0.3, colour = "lightblue", alpha = 0.1) +
   geom_density(alpha = 0.4) +
   labs(
     x = "Age",
@@ -133,10 +136,49 @@ breastcancer_clean |>
   scale_fill_viridis_d("") +
   theme_classic() +
   theme(legend.position = "none")
-
 ```
 
 ```{r}
-# Boxplots grouped by categories
+# Boxplots 
+par(mfrow=c(2,3))
+boxplot(breastcancer_clean$age, main='Age')
+boxplot(breastcancer_clean$tumor_size, main='Tumor Size')
+boxplot(breastcancer_clean$regional_node_examined,main='Node Examined' )
+boxplot(breastcancer_clean$reginol_node_positive, main='Positive Node')
+boxplot(breastcancer_clean$node_positive_prop, main='Proportion of Positive Nodes')
 ```
+
+```{r}
+par(mfrow = c(2,3))
+boxplot(age ~ status, breastcancer_clean)
+boxplot(tumor_size ~ status, breastcancer_clean)
+boxplot(regional_node_examined ~ status, breastcancer_clean)
+boxplot(reginol_node_positive ~ status, breastcancer_clean)
+boxplot(node_positive_prop ~ status, breastcancer_clean)
+```
+
+```{r}
+# Barplots for categorical variables
+ggplot(breastcancer_clean, aes(x = race, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = marital_status, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = t_stage, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = n_stage, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = x6th_stage, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = differentiate, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = grade, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = a_stage, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = estrogen_status, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = progesterone_status, fill = status)) + 
+  geom_bar(position = "dodge")
+```
+
 
