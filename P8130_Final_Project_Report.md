@@ -4,7 +4,6 @@ Jiying Wang
 2023-12-15
 
 ``` r
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 library(tidyverse)
 library(dplyr)
 library(MASS)
@@ -23,7 +22,18 @@ library(pROC)
 ``` r
 # import data
 breastcancer = read_csv("./data/Project_2_data.csv")
+```
 
+    ## Rows: 4024 Columns: 16
+    ## ── Column specification ────────────────────────────────────────────────────────
+    ## Delimiter: ","
+    ## chr (11): Race, Marital Status, T Stage, N Stage, 6th Stage, differentiate, ...
+    ## dbl  (5): Age, Tumor Size, Regional Node Examined, Reginol Node Positive, Su...
+    ## 
+    ## ℹ Use `spec()` to retrieve the full column specification for this data.
+    ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+``` r
 #Data Cleaning
 breastcancer_1 = breastcancer|>
   janitor::clean_names()|>
@@ -141,6 +151,12 @@ breastcancer_clean |>
   theme_classic() +
   theme(legend.position = "none")
 ```
+
+    ## Warning: The dot-dot notation (`..density..`) was deprecated in ggplot2 3.4.0.
+    ## ℹ Please use `after_stat(density)` instead.
+    ## This warning is displayed once every 8 hours.
+    ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+    ## generated.
 
 ![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
@@ -297,3 +313,91 @@ ggplot(breastcancer_clean, aes(x = progesterone_status, fill = status)) +
 ```
 
 ![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-9-10.png)<!-- -->
+
+``` r
+# Violin plots
+ggplot(breastcancer_clean, aes(x = status, y = race)) + 
+  geom_violin(aes(fill = race), alpha = .5, trim = FALSE) 
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = status, y = marital_status)) + 
+  geom_violin(aes(fill = marital_status), alpha = .5, trim = FALSE)
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-10-2.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = status, y = t_stage)) + 
+  geom_violin(aes(fill = t_stage), alpha = .5, trim = FALSE) 
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-10-3.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = status, y = n_stage)) + 
+  geom_violin(aes(fill = n_stage), alpha = .5, trim = FALSE)
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-10-4.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = status, y = x6th_stage)) + 
+  geom_violin(aes(fill = x6th_stage), alpha = .5, trim = FALSE) 
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-10-5.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = status, y = differentiate)) + 
+  geom_violin(aes(fill = differentiate), alpha = .5, trim = FALSE) 
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-10-6.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = status, y = grade)) + 
+  geom_violin(aes(fill = grade), alpha = .5, trim = FALSE) 
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-10-7.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = status, y = a_stage)) + 
+  geom_violin(aes(fill = a_stage), alpha = .5, trim = FALSE) 
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-10-8.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = status, y = estrogen_status)) + 
+  geom_violin(aes(fill = estrogen_status), alpha = .5, trim = FALSE) 
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-10-9.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = status, y = progesterone_status)) + 
+  geom_violin(aes(fill = progesterone_status), alpha = .5, trim = FALSE) 
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-10-10.png)<!-- -->
+
+``` r
+# Mosaic Plots
+par(mfrow = c(3,4))
+mosaicplot(table(breastcancer_clean$race, breastcancer_clean$status), main="Race vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$marital_status, breastcancer_clean$status), main="Marital Status vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$t_stage, breastcancer_clean$status), main="T-stage vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$n_stage, breastcancer_clean$status), main="N-stage vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$x6th_stage, breastcancer_clean$status), main="X6th Stage vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$differentiate, breastcancer_clean$status), main="Differentiate vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$grade, breastcancer_clean$status), main="Grade vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$a_stage, breastcancer_clean$status), main="A-stage vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$estrogen_status, breastcancer_clean$status), main="Estrogen Status vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$progesterone_status, breastcancer_clean$status), main="Progesterone Status vs Status", color = TRUE)
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
