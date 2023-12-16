@@ -6,126 +6,17 @@ Jiying Wang
 ``` r
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 library(tidyverse)
-```
-
-    ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-    ## ✔ dplyr     1.1.4     ✔ readr     2.1.4
-    ## ✔ forcats   1.0.0     ✔ stringr   1.5.1
-    ## ✔ ggplot2   3.4.4     ✔ tibble    3.2.1
-    ## ✔ lubridate 1.9.3     ✔ tidyr     1.3.0
-    ## ✔ purrr     1.0.2     
-    ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-    ## ✖ dplyr::filter() masks stats::filter()
-    ## ✖ dplyr::lag()    masks stats::lag()
-    ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
-
-``` r
 library(dplyr)
 library(MASS)
-```
-
-    ## 
-    ## Attaching package: 'MASS'
-    ## 
-    ## The following object is masked from 'package:dplyr':
-    ## 
-    ##     select
-
-``` r
 library(ggplot2)
 library(corrplot)
-```
-
-    ## corrplot 0.92 loaded
-
-``` r
 library(leaps)
 library(glmnet)
-```
-
-    ## Loading required package: Matrix
-    ## 
-    ## Attaching package: 'Matrix'
-    ## 
-    ## The following objects are masked from 'package:tidyr':
-    ## 
-    ##     expand, pack, unpack
-    ## 
-    ## Loaded glmnet 4.1-8
-
-``` r
 library(igraph)
-```
-
-    ## 
-    ## Attaching package: 'igraph'
-    ## 
-    ## The following objects are masked from 'package:lubridate':
-    ## 
-    ##     %--%, union
-    ## 
-    ## The following objects are masked from 'package:dplyr':
-    ## 
-    ##     as_data_frame, groups, union
-    ## 
-    ## The following objects are masked from 'package:purrr':
-    ## 
-    ##     compose, simplify
-    ## 
-    ## The following object is masked from 'package:tidyr':
-    ## 
-    ##     crossing
-    ## 
-    ## The following object is masked from 'package:tibble':
-    ## 
-    ##     as_data_frame
-    ## 
-    ## The following objects are masked from 'package:stats':
-    ## 
-    ##     decompose, spectrum
-    ## 
-    ## The following object is masked from 'package:base':
-    ## 
-    ##     union
-
-``` r
 library(arules)
-```
-
-    ## 
-    ## Attaching package: 'arules'
-    ## 
-    ## The following object is masked from 'package:dplyr':
-    ## 
-    ##     recode
-    ## 
-    ## The following objects are masked from 'package:base':
-    ## 
-    ##     abbreviate, write
-
-``` r
 library(caret)
-```
-
-    ## Loading required package: lattice
-    ## 
-    ## Attaching package: 'caret'
-    ## 
-    ## The following object is masked from 'package:purrr':
-    ## 
-    ##     lift
-
-``` r
 library(pROC)
 ```
-
-    ## Type 'citation("pROC")' for a citation.
-    ## 
-    ## Attaching package: 'pROC'
-    ## 
-    ## The following objects are masked from 'package:stats':
-    ## 
-    ##     cov, smooth, var
 
 ## Clean the dataset
 
@@ -178,8 +69,6 @@ breastcancer_clean
 
 ## EDA
 
-### Descriptive Statistics
-
 ``` r
 # Descriptive table with summary statistics
 summary(breastcancer_clean) |>
@@ -206,6 +95,16 @@ breastcancer_clean |>
 | 53.97217 | 8.963134 |        30.47366 |       21.1197 |                    14.35711 |                  8.099675 |                   4.158052 |                 5.109331 |             71.29796 |           22.92143 |               0.3264658 |             0.2870226 |
 
 ``` r
+prop.table(table(breastcancer_clean$status)) |>
+  knitr::kable()
+```
+
+| Var1 |      Freq |
+|:-----|----------:|
+| 0    | 0.8469185 |
+| 1    | 0.1530815 |
+
+``` r
 # Correlation matrix for all variables
 cor_matrix = breastcancer_clean |>
   select_if(is.numeric) |>
@@ -214,6 +113,13 @@ corrplot::corrplot(cor_matrix, type = "upper", diag = FALSE)
 ```
 
 ![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+
+``` r
+# Heat map
+corrplot::corrplot(cor_matrix, method = "color")
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-4-2.png)<!-- -->
 
 ``` r
 # Scatter plot matrix for all variables
@@ -225,8 +131,8 @@ pairs(breastcancer_clean)
 ``` r
 # Histograms and density plots
 breastcancer_clean |>
-  ggplot(aes(x = age, y = ..density.., fill = "skyblue", alpha = 0.5)) +
-  geom_histogram(binwidth = 0.3, colour = "black", alpha = 0.1) +
+  ggplot(aes(x = age, y = ..density.., fill = "purple", alpha = 0.5)) +
+  geom_histogram(binwidth = 0.3, colour = "lightblue", alpha = 0.1) +
   geom_density(alpha = 0.4) +
   labs(
     x = "Age",
@@ -240,8 +146,8 @@ breastcancer_clean |>
 
 ``` r
 breastcancer_clean |>
-  ggplot(aes(x = tumor_size, y = ..density.., fill = "skyblue", alpha = 0.5)) +
-  geom_histogram(binwidth = 0.3, colour = "black", alpha = 0.1) +
+  ggplot(aes(x = tumor_size, y = ..density.., fill = "purple", alpha = 0.5)) +
+  geom_histogram(binwidth = 0.3, colour = "lightblue", alpha = 0.1) +
   geom_density(alpha = 0.4) +
   labs(
     x = "Age",
@@ -255,8 +161,8 @@ breastcancer_clean |>
 
 ``` r
 breastcancer_clean |>
-  ggplot(aes(x = regional_node_examined, y = ..density.., fill = "skyblue", alpha = 0.5)) +
-  geom_histogram(binwidth = 0.3, colour = "black", alpha = 0.1) +
+  ggplot(aes(x = regional_node_examined, y = ..density.., fill = "purple", alpha = 0.5)) +
+  geom_histogram(binwidth = 0.3, colour = "lightblue", alpha = 0.1) +
   geom_density(alpha = 0.4) +
   labs(
     x = "Age",
@@ -270,8 +176,8 @@ breastcancer_clean |>
 
 ``` r
 breastcancer_clean |>
-  ggplot(aes(x = reginol_node_positive, y = ..density.., fill = "skyblue", alpha = 0.5)) +
-  geom_histogram(binwidth = 0.3, colour = "black", alpha = 0.1) +
+  ggplot(aes(x = reginol_node_positive, y = ..density.., fill = "purple", alpha = 0.5)) +
+  geom_histogram(binwidth = 0.3, colour = "lightblue", alpha = 0.1) +
   geom_density(alpha = 0.4) +
   labs(
     x = "Age",
@@ -285,8 +191,8 @@ breastcancer_clean |>
 
 ``` r
 breastcancer_clean |>
-  ggplot(aes(x = node_positive_prop, y = ..density.., fill = "skyblue", alpha = 0.5)) +
-  geom_histogram(binwidth = 0.3, colour = "black", alpha = 0.1) +
+  ggplot(aes(x = node_positive_prop, y = ..density.., fill = "purple", alpha = 0.5)) +
+  geom_histogram(binwidth = 0.3, colour = "lightblue", alpha = 0.1) +
   geom_density(alpha = 0.4) +
   labs(
     x = "Age",
@@ -299,5 +205,95 @@ breastcancer_clean |>
 ![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-6-5.png)<!-- -->
 
 ``` r
-# Boxplots grouped by categories
+# Boxplots 
+par(mfrow=c(2,3))
+boxplot(breastcancer_clean$age, main='Age')
+boxplot(breastcancer_clean$tumor_size, main='Tumor Size')
+boxplot(breastcancer_clean$regional_node_examined,main='Node Examined' )
+boxplot(breastcancer_clean$reginol_node_positive, main='Positive Node')
+boxplot(breastcancer_clean$node_positive_prop, main='Proportion of Positive Nodes')
 ```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+
+``` r
+par(mfrow = c(2,3))
+boxplot(age ~ status, breastcancer_clean)
+boxplot(tumor_size ~ status, breastcancer_clean)
+boxplot(regional_node_examined ~ status, breastcancer_clean)
+boxplot(reginol_node_positive ~ status, breastcancer_clean)
+boxplot(node_positive_prop ~ status, breastcancer_clean)
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+``` r
+# Barplots for categorical variables
+ggplot(breastcancer_clean, aes(x = race, fill = status)) + 
+  geom_bar(position = "dodge")
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = marital_status, fill = status)) + 
+  geom_bar(position = "dodge")
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-9-2.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = t_stage, fill = status)) + 
+  geom_bar(position = "dodge")
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-9-3.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = n_stage, fill = status)) + 
+  geom_bar(position = "dodge")
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-9-4.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = x6th_stage, fill = status)) + 
+  geom_bar(position = "dodge")
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-9-5.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = differentiate, fill = status)) + 
+  geom_bar(position = "dodge")
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-9-6.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = grade, fill = status)) + 
+  geom_bar(position = "dodge")
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-9-7.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = a_stage, fill = status)) + 
+  geom_bar(position = "dodge")
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-9-8.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = estrogen_status, fill = status)) + 
+  geom_bar(position = "dodge")
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-9-9.png)<!-- -->
+
+``` r
+ggplot(breastcancer_clean, aes(x = progesterone_status, fill = status)) + 
+  geom_bar(position = "dodge")
+```
+
+![](P8130_Final_Project_Report_files/figure-gfm/unnamed-chunk-9-10.png)<!-- -->
