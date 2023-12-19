@@ -1,5 +1,6 @@
 ---
 title: "Model Building"
+author: "Yuxin Yin"
 output: github_document
 date: "2023-12-12"
 ---
@@ -17,6 +18,10 @@ library(igraph)
 library(arules)
 library(caret)
 library(pROC)
+library(performance) # vif
+library(ggpubr)
+library(vcd)
+
 
 ```
 # Data Cleaning
@@ -122,7 +127,6 @@ summary(full_model)
 ```
 
 
-
 ```{r}
 backward_model <- step(full_model, direction = "backward")
 ```
@@ -140,10 +144,10 @@ print(predictions_backward)
 roc_curve_backward <- roc(response = as.matrix(test_data$status), predictor = as.numeric(predictions_backward) )
 auc(roc_curve_backward)
 
+#plot the roc curve
+plot(roc_curve_backward, main = "ROC Curve", col = "yellow")
+
 ```
-
-
-
 
 
 ## Forward Selection
@@ -165,8 +169,105 @@ print(predictions_forward)
 roc_curve_forward <- roc(response = as.matrix(test_data$status), predictor = as.numeric(predictions_forward) )
 auc(roc_curve_forward)
 
+#plot the roc curve
+plot(roc_curve_forward, main = "ROC Curve", col = "red")
 ```
 
+```{r}
+check_collinearity(forward_model)
+```
+
+
+```{r}
+breastcancer_for = breastcancer_test|>
+  dplyr::select(-t_stage)
+
+null_model_1 <- glm(status ~ 1, data = breastcancer_for, family = binomial())
+full_model_1 <- glm(status ~ ., data = breastcancer_for, family = binomial())
+forward_model_1 <- step(null_model_1, scope = list(lower = null_model_1, upper = full_model_1), direction = "forward")
+
+```
+```{r}
+predictions_forward_1 <- predict(forward_model_1, newdata = test_data1)
+
+# Viewing predictions
+print(predictions_forward_1)
+roc_curve_forward_1 <- roc(response = as.matrix(test_data$status), predictor = as.numeric(predictions_forward_1) )
+auc(roc_curve_forward_1)
+
+#plot the roc curve
+plot(roc_curve_forward_1, main = "ROC Curve", col = "red")
+```
+```{r}
+check_collinearity(forward_model_1)
+```
+
+```{r}
+
+breastcancer_for1 = breastcancer_for|>
+  dplyr::select(-x6th_stage)
+
+null_model_2 <- glm(status ~ 1, data = breastcancer_for1, family = binomial())
+full_model_2 <- glm(status ~ ., data = breastcancer_for1, family = binomial())
+forward_model_2 <- step(null_model_2, scope = list(lower = null_model_2, upper = full_model_2), direction = "forward")
+```
+```{r}
+summary(forward_model_2)
+predictions_forward_2 <- predict(forward_model_2, newdata = test_data1)
+
+# Viewing predictions
+print(predictions_forward_2)
+roc_curve_forward_2 <- roc(response = as.matrix(test_data$status), predictor = as.numeric(predictions_forward_2) )
+auc(roc_curve_forward_2)
+
+#plot the roc curve
+plot(roc_curve_forward_2, main = "ROC Curve", col = "green")
+```
+
+```{r}
+check_collinearity(forward_model_2)
+```
+```{r}
+cv_model <- train(status ~ n_stage + progesterone_status + differentiate + node_positive_prop + race + age + estrogen_status + tumor_size + regional_node_examined + marital_status + reginol_node_positive, data = train_data, method = "glm", family = "binomial", trControl = trainControl(method = "cv", number = 10))
+
+cv_model$finalModel
+print(cv_model)
+```
+```{r}
+breastcancer_clean|>
+  group_by(status)|>
+  summarize(n())
+```
+### Limitation: Comment on Low Kappa Score
+
+The low Kappa score suggests that the model struggles to effectively differentiate between cases of being alive and dead. This could be attributed to the imbalance in the dataset, where 3,408 cases are labeled as alive, compared to only 616 labeled as dead. Since the 'alive' status is much more common, the model mostly predicts 'alive' cases and gets a high overall accuracy. However, despite its high accuracy, the model's capability to discern between the alive and dead categories is only slightly better than what would be expected by random chance.
+
+### Comment
+The model's performance was evaluated using 10-fold cross-validation. 
+
+```{r}
+# Calculate AUC for the "White" group
+tmp1 = roc(breastcancer_clean$status[breastcancer_clean$race == "White"], predictions_forward_2[breastcancer_clean$race == "White"])
+white_auc = tmp1$auc
+
+# Calculate AUC for the "Black" group
+tmp2 = roc(breastcancer_clean$status[breastcancer_clean$race == "Black"], predictions_forward_2[breastcancer_clean$race == "Black"])
+black_auc = tmp2$auc
+
+# Calculate AUC for the "Other" group
+tmp3 = roc(breastcancer_clean$status[breastcancer_clean$race == "Other"], predictions_forward_2[breastcancer_clean$race == "Other"])
+other_auc = tmp3$auc
+
+
+# Calculate AUC for the "Positive Progesterone Status" group
+tmp4 = roc(breastcancer_clean$status[breastcancer_clean$progesterone_status == "Positive"], predictions_forward_2[breastcancer_clean$progesterone_status == "Positive"])
+positive_auc = tmp4$auc
+
+# Calculate AUC for the "Negative Progesterone Status" group
+tmp5 = roc(breastcancer_clean$status[breastcancer_clean$progesterone_status == "Negative"], predictions_forward_2[breastcancer_clean$progesterone_status == "Negative"])
+negative_auc = tmp5$auc
+
+```
 
 
 ### Discussion
@@ -269,7 +370,6 @@ AUC = 0.6897
 Takes 5 predictors into consideration.
 
 
-## Elastic Net
 
 
 
