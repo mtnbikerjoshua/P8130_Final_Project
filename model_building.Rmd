@@ -203,6 +203,60 @@ check_collinearity(forward_model_1)
 
 ```{r}
 
+breastcancer_for1 = breastcancer_for|>
+  dplyr::select(-x6th_stage)
+
+null_model_2 <- glm(status ~ 1, data = breastcancer_for1, family = binomial())
+full_model_2 <- glm(status ~ ., data = breastcancer_for1, family = binomial())
+forward_model_2 <- step(null_model_2, scope = list(lower = null_model_2, upper = full_model_2), direction = "forward")
+```
+```{r}
+summary(forward_model_2)
+predictions_forward_2 <- predict(forward_model_2, newdata = test_data1)
+
+# Viewing predictions
+print(predictions_forward_2)
+roc_curve_forward_2 <- roc(response = as.matrix(test_data$status), predictor = as.numeric(predictions_forward_2) )
+auc(roc_curve_forward_2)
+
+#plot the roc curve
+plot(roc_curve_forward_2, main = "ROC Curve", col = "green")
+```
+
+```{r}
+check_collinearity(forward_model_2)
+```
+```{r}
+cv_model <- train(status ~ n_stage + progesterone_status + differentiate + node_positive_prop + race + age + estrogen_status + tumor_size + regional_node_examined + marital_status + reginol_node_positive, data = train_data, method = "glm", family = "binomial", trControl = trainControl(method = "cv", number = 10))
+
+cv_model$finalModel
+print(cv_model)
+```
+### Comment
+The model's performance was evaluated using 10-fold cross-validation. 
+
+```{r}
+# Calculate AUC for the "White" group
+tmp1 = roc(breastcancer_clean$status[breastcancer_clean$race == "White"], predictions_forward_2[breastcancer_clean$race == "White"])
+white_auc = tmp1$auc
+
+# Calculate AUC for the "Black" group
+tmp2 = roc(breastcancer_clean$status[breastcancer_clean$race == "Black"], predictions_forward_2[breastcancer_clean$race == "Black"])
+black_auc = tmp2$auc
+
+# Calculate AUC for the "Other" group
+tmp3 = roc(breastcancer_clean$status[breastcancer_clean$race == "Other"], predictions_forward_2[breastcancer_clean$race == "Other"])
+other_auc = tmp3$auc
+
+
+# Calculate AUC for the "Positive Progesterone Status" group
+tmp4 = roc(breastcancer_clean$status[breastcancer_clean$progesterone_status == "Positive"], predictions_forward_2[breastcancer_clean$progesterone_status == "Positive"])
+positive_auc = tmp4$auc
+
+# Calculate AUC for the "Negative Progesterone Status" group
+tmp5 = roc(breastcancer_clean$status[breastcancer_clean$progesterone_status == "Negative"], predictions_forward_2[breastcancer_clean$progesterone_status == "Negative"])
+negative_auc = tmp5$auc
+
 ```
 
 
@@ -304,6 +358,7 @@ plot(roc_curve_ridge, main = "ROC Curve", col = "blue")
 
 AUC = 0.6897
 Takes 5 predictors into consideration.
+
 
 
 
