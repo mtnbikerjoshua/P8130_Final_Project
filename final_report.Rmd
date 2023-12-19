@@ -1,0 +1,23 @@
+---
+title: "final report"
+output: pdf_document
+date: "2023-12-19"
+---
+
+# Introduction
+
+# Data and Methods
+
+# Assumption Checking 
+
+
+# Variable Selection
+
+
+# Model Selection
+
+
+# Result 
+
+
+# Conclusion
