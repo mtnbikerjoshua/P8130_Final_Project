@@ -129,7 +129,10 @@ library(pROC)
 ``` r
 library(performance) # vif
 library(ggpubr)
+library(vcd)
 ```
+
+    ## Loading required package: grid
 
 # Data Cleaning
 
@@ -246,7 +249,7 @@ rules <- apriori(breastcancer_cag, parameter = list(supp = 0.001, conf = 0.8))
     ## creating transaction tree ... done [0.00s].
     ## checking subsets of size 1 2 3 4 5 6 7 8 9 10 done [0.08s].
     ## writing ... [424628 rule(s)] done [0.11s].
-    ## creating S4 object  ... done [0.19s].
+    ## creating S4 object  ... done [0.18s].
 
 ``` r
 # Inspect the top 5 rules
@@ -2424,7 +2427,7 @@ auc(roc_curve)
 plot(roc_curve, main = "ROC Curve", col = "green")
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-20-1.png)<!-- --> \###
+![](model_building_files/figure-gfm/unnamed-chunk-21-1.png)<!-- --> \###
 Comment
 
 AUC = 0.6916 Only 4 predictors
@@ -2466,7 +2469,7 @@ auc(roc_curve_ridge)
 plot(roc_curve_ridge, main = "ROC Curve", col = "blue")
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
+![](model_building_files/figure-gfm/unnamed-chunk-23-1.png)<!-- -->
 
 ### Comment
 

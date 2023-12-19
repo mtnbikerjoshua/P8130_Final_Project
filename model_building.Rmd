@@ -19,6 +19,8 @@ library(caret)
 library(pROC)
 library(performance) # vif
 library(ggpubr)
+library(vcd)
+
 
 ```
 # Data Cleaning
@@ -124,7 +126,6 @@ summary(full_model)
 ```
 
 
-
 ```{r}
 backward_model <- step(full_model, direction = "backward")
 ```
@@ -144,10 +145,8 @@ auc(roc_curve_backward)
 
 #plot the roc curve
 plot(roc_curve_backward, main = "ROC Curve", col = "yellow")
+
 ```
-
-
-
 
 
 ## Forward Selection
@@ -201,6 +200,11 @@ plot(roc_curve_forward_1, main = "ROC Curve", col = "red")
 ```{r}
 check_collinearity(forward_model_1)
 ```
+
+```{r}
+
+```
+
 
 ### Discussion
 AIC of backward selection is 2992.2 compared to AIC = 2996.4 for forward selection. The difference in AIC is approximately 4 for the backward and forward selction models. This difference suggests less support for the model with higher AIC. The forward model is slightly more complex than the backward model. In addition, the backward selection model is a nested version of the forward selection model. 
@@ -301,8 +305,6 @@ plot(roc_curve_ridge, main = "ROC Curve", col = "blue")
 AUC = 0.6897
 Takes 5 predictors into consideration.
 
-
-## Elastic Net
 
 
 
