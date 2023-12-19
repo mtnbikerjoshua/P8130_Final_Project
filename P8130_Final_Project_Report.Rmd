@@ -2,10 +2,10 @@
 title: "P8130_Final_Project_Report"
 author: "Jiying Wang"
 date: "2023-12-15"
-output: github_document
+output: pdf_document
 ---
 
-```{r, message = FALSE}
+```{r, message = FALSE, include = FALSE}
 library(tidyverse)
 library(dplyr)
 library(MASS)
@@ -21,7 +21,7 @@ library(pROC)
 
 ## Clean the dataset
 
-```{r}
+```{r, include = FALSE}
 # import data
 breastcancer = read_csv("./data/Project_2_data.csv")
 
@@ -51,7 +51,7 @@ breastcancer_clean
 
 ## EDA
 
-```{r}
+```{r, include = FALSE}
 # Descriptive table with summary statistics
 summary(breastcancer_clean) |>
   knitr::kable()
