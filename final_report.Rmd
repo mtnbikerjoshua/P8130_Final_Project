@@ -18,9 +18,13 @@ The dataset utilized in this study was derived from a comprehensive breast cance
 
 ## Variable and Model Selection Procedures
 
-After preprocessing the dataset, we subdivided our dataset into categorical and numerical variables in order to have a general outline data patterns. In **Table 1**, we summarized the essential statistics of all the categorical variables, which includes variable names, number of missing values, unique and top counts. 
+After preprocessing the dataset, we subdivided our dataset into categorical and numerical variables in order to have a general outline data patterns. In **Table 1**, we summarized the essential statistics of all the categorical variables, which includes variable names, number of missing values, unique and top counts. <br>
 
-For numerical variables, we employed boxplot visualizations to effectively represent their distribution patterns. As illustrated in **Figure 1**, these boxplots serve as a comprehensive visualization, which include potential outliers, important quartiles, and medians of all the numerical variables. 
+For numerical variables, we employed boxplot visualizations to effectively represent their distribution patterns. As illustrated in **Figure 1**, these boxplots serve as a comprehensive visualization, which include potential outliers, important quartiles, and medians of all the numerical variables. <br>
+
+After getting a general overview of the data patterns, we used stepwise selection as well as LASSO and Ridge Regression during the model selection. <br>
+First, we fit a full model with all the predictors in the data set by using the survival status as our response variable. Estimates, standard errors, and P-values are all included in **Table 2**. Then, we performed model diagnostics based on the initial full model. Firstly, we check for multicollinearity by using the VIF table in **Table 3**.
+
 # Assumption Checking
 
 # Result
@@ -97,7 +101,39 @@ knitr::kable(x = summary_catego, caption = "Summary Statistics of Categorical Va
 
 ```
 
+```{r echo=FALSE, warning=FALSE, message=FALSE}
 
+#split the data
+set.seed(123)
+breastcancer_test = breastcancer_clean|>
+  dplyr::select(-survival_months)
+split <- createDataPartition(breastcancer_test$status, p = .7, list = FALSE)
+train_data <- breastcancer_test[split, ]
+test_data <- breastcancer_test[-split, ]
+test_data1 = test_data|> dplyr::select(-status)
+
+breastcancer_clean1 <- breastcancer_test|>
+  drop_na()
+
+full_model <- glm(status ~ ., data = breastcancer_test, family = binomial())
+full_model_tab = full_model|>
+broom::tidy()|>
+dplyr::select(term, estimate, std.error, p.value)
+colnames(full_model_tab) = c("Term", "Estimate","Standard Error", "P Value")
+knitr::kable(x = full_model_tab, caption = "Table 2: Full Model Summary", digits = 3)
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# Calculate the variance inflation factor (VIF)
+vif_full = check_collinearity(full_model)|>
+  rename(CI_low = VIF_CI_low,
+         CI_high = VIF_CI_high,
+         Tolerance_low = Tolerance_CI_low,
+         Tolerance_high = Tolerance_CI_high)|>
+      as_tibble() 
+knitr::kable(x = vif_full, caption = "Table 3: VIF for Full Model", digits = 1)
+
+```
 
 
 # Figure 
@@ -111,6 +147,7 @@ boxplot(breastcancer_clean$reginol_node_positive, main='Positive Node')
 boxplot(breastcancer_clean$node_positive_prop, main='Proportion of Positive Nodes')
 mtext("Figure 1: Numerical Variables Distribution", side = 3, line = -1.5, outer = TRUE, cex = 1.5)
 ```
+
 
 
 
