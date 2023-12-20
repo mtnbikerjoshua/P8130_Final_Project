@@ -1,0 +1,221 @@
+---
+title: "P8130_Final_Project_Report"
+author: "Jiying Wang"
+date: "2023-12-15"
+output: pdf_document
+---
+
+```{r, message = FALSE, include = FALSE}
+library(tidyverse)
+library(dplyr)
+library(MASS)
+library(ggplot2)
+library(corrplot)
+library(leaps)
+library(glmnet)
+library(igraph)
+library(arules)
+library(caret)
+library(pROC)
+```
+
+## Clean the dataset
+
+```{r, include = FALSE}
+# import data
+breastcancer = read_csv("./data/Project_2_data.csv")
+
+#Data Cleaning
+breastcancer_1 = breastcancer|>
+  janitor::clean_names()|>
+   mutate(
+    race = as_factor(race),
+    marital_status = factor(marital_status, levels = c("Single", "Married", "Divorced", "Separated", "Widowed")),
+    t_stage = factor(t_stage, levels = c("T1", "T2", "T3", "T4")),
+    n_stage = factor(n_stage, levels = c("N1", "N2", "N3")),
+    x6th_stage = factor(x6th_stage, levels = c("IIA", "IIB", "IIIA", "IIIB", "IIIC")),
+    differentiate = factor(differentiate, levels = c("Moderately differentiated", "Poorly differentiated", "Undifferentiated", "Well differentiated")),
+    grade = factor(grade, levels = c("1", "2", "3", "anaplastic; Grade IV")),
+    a_stage = factor(a_stage, levels = c("Distant", "Regional")),
+    estrogen_status = as_factor(estrogen_status),
+    progesterone_status = as_factor(progesterone_status),
+    status = ifelse(status == "Dead", 1, 0),
+    status = as_factor(status))
+
+breastcancer_clean = breastcancer_1|>
+  mutate(node_positive_prop = reginol_node_positive/regional_node_examined,
+         node_positive_prop = round(node_positive_prop, 4))
+  
+breastcancer_clean
+```
+
+## EDA
+
+```{r, include = FALSE}
+# Descriptive table with summary statistics
+summary(breastcancer_clean) |>
+  knitr::kable()
+breastcancer_clean |> 
+  summarise(across(where(is.numeric), list(mean = ~mean(., na.rm = TRUE), sd = ~sd(., na.rm = TRUE)))) |>
+  knitr::kable()
+prop.table(table(breastcancer_clean$status)) |>
+  knitr::kable()
+```
+
+
+```{r}
+# Correlation matrix for all variables
+cor_matrix = breastcancer_clean |>
+  select_if(is.numeric) |>
+  cor() 
+corrplot::corrplot(cor_matrix, type = "upper", diag = FALSE)
+
+# Heat map
+corrplot::corrplot(cor_matrix, method = "color")
+```
+
+```{r}
+# Scatter plot matrix for all variables
+pairs(breastcancer_clean)
+```
+
+```{r}
+# Histograms and density plots
+breastcancer_clean |>
+  ggplot(aes(x = age, y = ..density.., fill = "purple", alpha = 0.5)) +
+  geom_histogram(binwidth = 0.3, colour = "lightblue", alpha = 0.1) +
+  geom_density(alpha = 0.4) +
+  labs(
+    x = "Age",
+    y = "Density") +
+  scale_fill_viridis_d("") +
+  theme_classic() +
+  theme(legend.position = "none")
+
+breastcancer_clean |>
+  ggplot(aes(x = tumor_size, y = ..density.., fill = "purple", alpha = 0.5)) +
+  geom_histogram(binwidth = 0.3, colour = "lightblue", alpha = 0.1) +
+  geom_density(alpha = 0.4) +
+  labs(
+    x = "Age",
+    y = "Density") +
+  scale_fill_viridis_d("") +
+  theme_classic() +
+  theme(legend.position = "none")
+
+breastcancer_clean |>
+  ggplot(aes(x = regional_node_examined, y = ..density.., fill = "purple", alpha = 0.5)) +
+  geom_histogram(binwidth = 0.3, colour = "lightblue", alpha = 0.1) +
+  geom_density(alpha = 0.4) +
+  labs(
+    x = "Age",
+    y = "Density") +
+  scale_fill_viridis_d("") +
+  theme_classic() +
+  theme(legend.position = "none")
+
+breastcancer_clean |>
+  ggplot(aes(x = reginol_node_positive, y = ..density.., fill = "purple", alpha = 0.5)) +
+  geom_histogram(binwidth = 0.3, colour = "lightblue", alpha = 0.1) +
+  geom_density(alpha = 0.4) +
+  labs(
+    x = "Age",
+    y = "Density") +
+  scale_fill_viridis_d("") +
+  theme_classic() +
+  theme(legend.position = "none")
+
+breastcancer_clean |>
+  ggplot(aes(x = node_positive_prop, y = ..density.., fill = "purple", alpha = 0.5)) +
+  geom_histogram(binwidth = 0.3, colour = "lightblue", alpha = 0.1) +
+  geom_density(alpha = 0.4) +
+  labs(
+    x = "Age",
+    y = "Density") +
+  scale_fill_viridis_d("") +
+  theme_classic() +
+  theme(legend.position = "none")
+```
+
+```{r}
+# Boxplots 
+par(mfrow=c(2,3))
+boxplot(breastcancer_clean$age, main='Age')
+boxplot(breastcancer_clean$tumor_size, main='Tumor Size')
+boxplot(breastcancer_clean$regional_node_examined,main='Node Examined' )
+boxplot(breastcancer_clean$reginol_node_positive, main='Positive Node')
+boxplot(breastcancer_clean$node_positive_prop, main='Proportion of Positive Nodes')
+```
+
+```{r}
+par(mfrow = c(2,3))
+boxplot(age ~ status, breastcancer_clean)
+boxplot(tumor_size ~ status, breastcancer_clean)
+boxplot(regional_node_examined ~ status, breastcancer_clean)
+boxplot(reginol_node_positive ~ status, breastcancer_clean)
+boxplot(node_positive_prop ~ status, breastcancer_clean)
+```
+
+```{r}
+# Barplots for categorical variables
+ggplot(breastcancer_clean, aes(x = race, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = marital_status, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = t_stage, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = n_stage, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = x6th_stage, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = differentiate, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = grade, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = a_stage, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = estrogen_status, fill = status)) + 
+  geom_bar(position = "dodge")
+ggplot(breastcancer_clean, aes(x = progesterone_status, fill = status)) + 
+  geom_bar(position = "dodge")
+```
+
+```{r}
+# Violin plots
+ggplot(breastcancer_clean, aes(x = status, y = race)) + 
+  geom_violin(aes(fill = race), alpha = .5, trim = FALSE) 
+ggplot(breastcancer_clean, aes(x = status, y = marital_status)) + 
+  geom_violin(aes(fill = marital_status), alpha = .5, trim = FALSE)
+ggplot(breastcancer_clean, aes(x = status, y = t_stage)) + 
+  geom_violin(aes(fill = t_stage), alpha = .5, trim = FALSE) 
+ggplot(breastcancer_clean, aes(x = status, y = n_stage)) + 
+  geom_violin(aes(fill = n_stage), alpha = .5, trim = FALSE)
+ggplot(breastcancer_clean, aes(x = status, y = x6th_stage)) + 
+  geom_violin(aes(fill = x6th_stage), alpha = .5, trim = FALSE) 
+ggplot(breastcancer_clean, aes(x = status, y = differentiate)) + 
+  geom_violin(aes(fill = differentiate), alpha = .5, trim = FALSE) 
+ggplot(breastcancer_clean, aes(x = status, y = grade)) + 
+  geom_violin(aes(fill = grade), alpha = .5, trim = FALSE) 
+ggplot(breastcancer_clean, aes(x = status, y = a_stage)) + 
+  geom_violin(aes(fill = a_stage), alpha = .5, trim = FALSE) 
+ggplot(breastcancer_clean, aes(x = status, y = estrogen_status)) + 
+  geom_violin(aes(fill = estrogen_status), alpha = .5, trim = FALSE) 
+ggplot(breastcancer_clean, aes(x = status, y = progesterone_status)) + 
+  geom_violin(aes(fill = progesterone_status), alpha = .5, trim = FALSE) 
+```
+
+```{r}
+# Mosaic Plots
+par(mfrow = c(3,4))
+mosaicplot(table(breastcancer_clean$race, breastcancer_clean$status), main="Race vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$marital_status, breastcancer_clean$status), main="Marital Status vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$t_stage, breastcancer_clean$status), main="T-stage vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$n_stage, breastcancer_clean$status), main="N-stage vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$x6th_stage, breastcancer_clean$status), main="X6th Stage vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$differentiate, breastcancer_clean$status), main="Differentiate vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$grade, breastcancer_clean$status), main="Grade vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$a_stage, breastcancer_clean$status), main="A-stage vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$estrogen_status, breastcancer_clean$status), main="Estrogen Status vs Status", color = TRUE)
+mosaicplot(table(breastcancer_clean$progesterone_status, breastcancer_clean$status), main="Progesterone Status vs Status", color = TRUE)
+```
+

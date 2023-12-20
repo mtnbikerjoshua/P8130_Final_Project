@@ -1,5 +1,6 @@
 Model Building
 ================
+Yuxin Yin
 2023-12-12
 
 ``` r
@@ -183,6 +184,37 @@ breastcancer_clean
     ## #   reginol_node_positive <dbl>, survival_months <dbl>, status <fct>,
     ## #   node_positive_prop <dbl>
 
+# Variable Summary Statistics
+
+``` r
+summary_catego =
+  breastcancer_clean |>
+  dplyr::select(-1, -10, -13, -14, -15) |>
+  skimr::skim() |>
+  dplyr::select(skim_variable, n_missing, factor.n_unique, factor.top_counts)
+ 
+  colnames(summary_catego) = c("Variable", "Missing", "Unique Counts", "Top Counts")
+
+knitr::kable(x = summary_catego, caption = "Summary Statistics of Categorical Variables", digits = 3)
+```
+
+| Variable            | Missing | Unique Counts | Top Counts                                |
+|:--------------------|--------:|--------------:|:------------------------------------------|
+| race                |       0 |             3 | Whi: 3413, Oth: 320, Bla: 291             |
+| marital_status      |       0 |             5 | Mar: 2643, Sin: 615, Div: 486, Wid: 235   |
+| t_stage             |       0 |             4 | T2: 1786, T1: 1603, T3: 533, T4: 102      |
+| n_stage             |       0 |             3 | N1: 2732, N2: 820, N3: 472                |
+| x6th_stage          |       0 |             5 | IIA: 1305, IIB: 1130, III: 1050, III: 472 |
+| differentiate       |       0 |             4 | Mod: 2351, Poo: 1111, Wel: 543, Und: 19   |
+| grade               |       0 |             4 | 2: 2351, 3: 1111, 1: 543, ana: 19         |
+| a_stage             |       0 |             2 | Reg: 3932, Dis: 92                        |
+| estrogen_status     |       0 |             2 | Pos: 3755, Neg: 269                       |
+| progesterone_status |       0 |             2 | Pos: 3326, Neg: 698                       |
+| status              |       0 |             2 | 0: 3408, 1: 616                           |
+| node_positive_prop  |       0 |            NA | NA                                        |
+
+Summary Statistics of Categorical Variables
+
 # Exploratory Analysis
 
 ## Checking Association Between Numerical Variables
@@ -192,7 +224,7 @@ breastcancer_clean
 pairs(breastcancer_clean)
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+![](model_building_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
 
 ``` r
 # correlation plot
@@ -202,7 +234,7 @@ breastcancer_num = breastcancer_clean|>
 corrplot(cor(breastcancer_num), type = "upper", diag = FALSE)
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-3-2.png)<!-- -->
+![](model_building_files/figure-gfm/unnamed-chunk-4-2.png)<!-- -->
 
 ``` r
 # Boxplots for each variable
@@ -214,7 +246,7 @@ boxplot(breastcancer_clean$reginol_node_positive, main='Positive Node')
 boxplot(breastcancer_clean$node_positive_prop, main='Proportion of Positive Nodes')
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-3-3.png)<!-- -->
+![](model_building_files/figure-gfm/unnamed-chunk-4-3.png)<!-- -->
 
 - `tumor_size` has substantial amounts of outliers. <br>
 - `reginol_node_positive` and `node_positive_prop` are highly
@@ -223,6 +255,7 @@ boxplot(breastcancer_clean$node_positive_prop, main='Proportion of Positive Node
 ## Checking Association Between Categorical Variables
 
 ``` r
+library(knitr)
 breastcancer_cag = breastcancer_clean|>
   dplyr::select(-age, -tumor_size, -regional_node_examined, -reginol_node_positive, -node_positive_prop, -survival_months)
 
@@ -247,13 +280,14 @@ rules <- apriori(breastcancer_cag, parameter = list(supp = 0.001, conf = 0.8))
     ## set transactions ...[36 item(s), 4024 transaction(s)] done [0.00s].
     ## sorting and recoding items ... [36 item(s)] done [0.00s].
     ## creating transaction tree ... done [0.00s].
-    ## checking subsets of size 1 2 3 4 5 6 7 8 9 10 done [0.08s].
-    ## writing ... [424628 rule(s)] done [0.11s].
-    ## creating S4 object  ... done [0.19s].
+    ## checking subsets of size 1 2 3 4 5 6 7 8 9 10 done [0.06s].
+    ## writing ... [424628 rule(s)] done [0.08s].
+    ## creating S4 object  ... done [0.13s].
 
 ``` r
 # Inspect the top 5 rules
-inspect(head(sort(rules, by = "confidence"), 5))
+inspect(head(sort(rules, by = "confidence"), 5))|>
+  knitr::kable()
 ```
 
     ##     lhs                                 rhs                                 support confidence   coverage       lift count
@@ -915,7 +949,7 @@ auc(roc_curve_backward)
 plot(roc_curve_backward, main = "ROC Curve", col = "yellow")
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+![](model_building_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
 ## Forward Selection
 
@@ -1580,7 +1614,7 @@ auc(roc_curve_forward)
 plot(roc_curve_forward, main = "ROC Curve", col = "red")
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](model_building_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
 
 ``` r
 check_collinearity(forward_model)
@@ -2321,7 +2355,7 @@ auc(roc_curve_forward_1)
 plot(roc_curve_forward_1, main = "ROC Curve", col = "red")
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+![](model_building_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
 
 ``` r
 check_collinearity(forward_model_1)
@@ -3002,7 +3036,7 @@ auc(roc_curve_forward_2)
 plot(roc_curve_forward_2, main = "ROC Curve", col = "green")
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+![](model_building_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
 
 ``` r
 check_collinearity(forward_model_2)
@@ -3183,7 +3217,7 @@ auc(roc_curve)
 plot(roc_curve, main = "ROC Curve", col = "green")
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-25-1.png)<!-- --> \###
+![](model_building_files/figure-gfm/unnamed-chunk-26-1.png)<!-- --> \###
 Comment
 
 AUC = 0.6916 Only 4 predictors
@@ -3225,7 +3259,7 @@ auc(roc_curve_ridge)
 plot(roc_curve_ridge, main = "ROC Curve", col = "blue")
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
+![](model_building_files/figure-gfm/unnamed-chunk-28-1.png)<!-- -->
 
 ### Comment
 

@@ -1,5 +1,6 @@
 ---
 title: "Model Building"
+author: "Yuxin Yin"
 output: github_document
 date: "2023-12-12"
 ---
@@ -23,6 +24,7 @@ library(vcd)
 
 
 ```
+
 # Data Cleaning
 
 ```{r}
@@ -51,6 +53,19 @@ breastcancer_clean = breastcancer_1|>
          node_positive_prop = round(node_positive_prop, 4))
   
 breastcancer_clean
+```
+# Variable Summary Statistics
+```{r}
+summary_catego =
+  breastcancer_clean |>
+  dplyr::select(-1, -10, -13, -14, -15) |>
+  skimr::skim() |>
+  dplyr::select(skim_variable, n_missing, factor.n_unique, factor.top_counts)
+ 
+  colnames(summary_catego) = c("Variable", "Missing", "Unique Counts", "Top Counts")
+
+knitr::kable(x = summary_catego, caption = "Summary Statistics of Categorical Variables", digits = 3)
+
 ```
 
 # Exploratory Analysis
@@ -82,13 +97,15 @@ boxplot(breastcancer_clean$node_positive_prop, main='Proportion of Positive Node
 ## Checking Association Between Categorical Variables
 
 ```{r}
+library(knitr)
 breastcancer_cag = breastcancer_clean|>
   dplyr::select(-age, -tumor_size, -regional_node_examined, -reginol_node_positive, -node_positive_prop, -survival_months)
 
 rules <- apriori(breastcancer_cag, parameter = list(supp = 0.001, conf = 0.8))
 
 # Inspect the top 5 rules
-inspect(head(sort(rules, by = "confidence"), 5))
+inspect(head(sort(rules, by = "confidence"), 5))|>
+  knitr::kable()
 ```
 
 

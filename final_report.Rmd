@@ -4,20 +4,114 @@ output: pdf_document
 date: "2023-12-19"
 ---
 
+# Abstract
+
 # Introduction
 
 # Data and Methods
 
-# Assumption Checking 
+## Descriptive Data
 
+## Data Cleaning and Preparation
 
-# Variable Selection
+The dataset utilized in this study was derived from a comprehensive breast cancer database. The initial step in data preparation involved the standardization of variable names to ensure consistency. In addition, we converted several categorical variables into factors with defined levels. Specifically, we recoded the survival status variable into a binary format with `Dead` as 1 and `Alive` as 0. Finally, a new variable `node_positive_prop` was created and calculated based on the ratio of `reginol_node_positive` to `regional_node_examined`. This variable represents the proportion of examined nodes that were found to be positive.
 
+## Variable and Model Selection Procedures
 
-# Model Selection
+After preprocessing the dataset, we subdivided our dataset into categorical and numerical variables in order to have a general outline data patterns. In **Table 1**, we summarized the essential statistics of all the categorical variables, which includes variable names, number of missing values, unique and top counts. 
 
+For numerical variables, we employed boxplot visualizations to effectively represent their distribution patterns. As illustrated in **Figure 1**, these boxplots serve as a comprehensive visualization, which include potential outliers, important quartiles, and medians of all the numerical variables. 
+# Assumption Checking
 
-# Result 
+# Result
 
+## Variable Selection
+
+## Model Selection
 
 # Conclusion
+
+# Appendix
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(dplyr)
+library(MASS)
+library(ggplot2)
+library(corrplot)
+library(leaps)
+library(glmnet)
+library(igraph)
+library(arules)
+library(caret)
+library(pROC)
+library(performance) # vif
+library(ggpubr)
+library(vcd)
+
+
+```
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# import data
+breastcancer = read_csv("./data/Project_2_data.csv")
+
+#Data Cleaning
+breastcancer_1 = breastcancer|>
+  janitor::clean_names()|>
+   mutate(
+    race = as_factor(race),
+    marital_status = factor(marital_status, levels = c("Single", "Married", "Divorced", "Separated", "Widowed")),
+    t_stage = factor(t_stage, levels = c("T1", "T2", "T3", "T4")),
+    n_stage = factor(n_stage, levels = c("N1", "N2", "N3")),
+    x6th_stage = factor(x6th_stage, levels = c("IIA", "IIB", "IIIA", "IIIB", "IIIC")),
+    differentiate = factor(differentiate, levels = c("Moderately differentiated", "Poorly differentiated", "Undifferentiated", "Well differentiated")),
+    grade = factor(grade, levels = c("1", "2", "3", "anaplastic; Grade IV")),
+    a_stage = factor(a_stage, levels = c("Distant", "Regional")),
+    estrogen_status = as_factor(estrogen_status),
+    progesterone_status = as_factor(progesterone_status),
+    status = ifelse(status == "Dead", 1, 0),
+    status = as_factor(status))
+
+breastcancer_clean = breastcancer_1|>
+  mutate(node_positive_prop = reginol_node_positive/regional_node_examined,
+         node_positive_prop = round(node_positive_prop, 4))
+```
+
+
+## Table
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# Table 1
+summary_catego =
+  breastcancer_clean |>
+  dplyr::select(-1, -10, -13, -14, -15) |>
+  skimr::skim() |>
+  dplyr::select(skim_variable, n_missing, factor.n_unique, factor.top_counts)
+ 
+  colnames(summary_catego) = c("Variable", "Missing", "Unique Counts", "Top Counts")
+
+knitr::kable(x = summary_catego, caption = "Summary Statistics of Categorical Variables", digits = 3)
+
+```
+
+
+
+
+# Figure 
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# Figure 1
+par(mfrow=c(2,3))
+boxplot(breastcancer_clean$age, main='Age')
+boxplot(breastcancer_clean$tumor_size, main='Tumor Size')
+boxplot(breastcancer_clean$regional_node_examined,main='Node Examined' )
+boxplot(breastcancer_clean$reginol_node_positive, main='Positive Node')
+boxplot(breastcancer_clean$node_positive_prop, main='Proportion of Positive Nodes')
+mtext("Figure 1: Numerical Variables Distribution", side = 3, line = -1.5, outer = TRUE, cex = 1.5)
+```
+
+
+
+# Contribution
