@@ -22,8 +22,9 @@ After preprocessing the dataset, we subdivided our dataset into categorical and 
 
 For numerical variables, we employed boxplot visualizations to effectively represent their distribution patterns. As illustrated in **Figure 1**, these boxplots serve as a comprehensive visualization, which include potential outliers, important quartiles, and medians of all the numerical variables. <br>
 
-After getting a general overview of the data patterns, we used stepwise selection as well as LASSO and Ridge Regression during the model selection. <br>
-First, we fit a full model with all the predictors in the data set by using the survival status as our response variable. Estimates, standard errors, and P-values are all included in **Table 2**. Then, we performed model diagnostics based on the initial full model. Firstly, we check for multicollinearity by using the VIF table in **Table 3**.
+After gaining an initial understanding of the data trends, we employed both stepwise selection and regularization techniques like LASSO and Ridge Regression for selecting the most appropriate model.<br>
+
+Initially, a comprehensive model incorporating all available predictors was developed, targeting survival status as the response variable. The corresponding estimates, standard errors, and P-values are illustrated in details in **Table 2**. In addition, we conducted a series of diagnostic evaluations on this full model. Our first step in this process was to assess multicollinearity, the results of which are presented in the Variance Inflation Factor (VIF) table depicted in **Table 3**. After the implementation of stepwise selection methods, along with LASSO and Ridge Regression, we proceeded to evaluate the classification accuracy of all the models. This was achieved through the generation of Receiver Operating Characteristic (ROC) curves and the analysis of the Area Under the Curve (AUC) statistics. The summary of all AUC statistics are included in **Table 4**. In addition, all ROC curves arr illustrated with **Figure 2**, **Figure 3**, **Figure 4**, and **Figure 5**. 
 
 # Assumption Checking
 
@@ -121,6 +122,8 @@ broom::tidy()|>
 dplyr::select(term, estimate, std.error, p.value)
 colnames(full_model_tab) = c("Term", "Estimate","Standard Error", "P Value")
 knitr::kable(x = full_model_tab, caption = "Table 2: Full Model Summary", digits = 3)
+
+
 ```
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
@@ -135,6 +138,19 @@ knitr::kable(x = vif_full, caption = "Table 3: VIF for Full Model", digits = 1)
 
 ```
 
+
+```{r echo=FALSE, results = 'hide', message=FALSE, warning=FALSE}
+backward_model <- step(full_model, direction = "backward")
+```
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+backward_model_table = backward_model|>
+  broom::tidy()|>
+  dplyr::select(term, estimate, std.error, p.value)
+colnames(backward_model_table) = c("Term", "Estimate","Standard Error", "P Value")
+knitr::kable(x = backward_model_table, caption = "Table 4: Backward Model Summary", digits = 3)
+```
 
 # Figure 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
