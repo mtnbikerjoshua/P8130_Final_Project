@@ -28,9 +28,12 @@ Initially, a comprehensive model incorporating all available predictors was deve
 
 # Assumption Checking
 
+
 # Result
 
-## Variable Selection
+## Model Construction
+
+Since our response variable `status` is a binary variable, we decided to implement a logistic regression in order to predict the risk of death based on variables selected. We selected our model variables in four distinct manners: two automatic approaches (both backward and forward selections) and two shrinkage methods(LASSO as well as Ridge Regression). The final models including all the variable selected by different methods are illustrated in **Table 5** to **Table 8**. <br>
 
 ## Model Selection
 
@@ -141,7 +144,96 @@ knitr::kable(x = vif_full, caption = "Table 3: VIF for Full Model", digits = 1)
 
 ```{r echo=FALSE, results = 'hide', message=FALSE, warning=FALSE}
 backward_model <- step(full_model, direction = "backward")
+breastcancer_for = breastcancer_test|>
+  dplyr::select(-t_stage)
+breastcancer_for1 = breastcancer_for|>
+  dplyr::select(-x6th_stage)
+
+null_model_2 <- glm(status ~ 1, data = breastcancer_for1, family = binomial())
+full_model_2 <- glm(status ~ ., data = breastcancer_for1, family = binomial())
+forward_model_2 <- step(null_model_2, scope = list(lower = null_model_2, upper = full_model_2), direction = "forward")
+
 ```
+
+
+```{r echo=FALSE, results = 'hide', message=FALSE, warning=FALSE}
+#split the data
+set.seed(123)
+breastcancer_test = breastcancer_clean|>
+  dplyr::select(-survival_months)
+split <- createDataPartition(breastcancer_test$status, p = .7, list = FALSE)
+train_data <- breastcancer_test[split, ]
+test_data <- breastcancer_test[-split, ]
+X <- as.matrix(train_data[, -which(names(train_data) == "status")])
+y <- train_data$status
+
+set.seed(123)
+lasso_model <- glmnet(X, y, alpha = 1, family = "binomial")
+
+#determine the best lambda
+cv_lasso <- cv.glmnet(X, y, alpha = 1, family = "binomial", type.measure = "auc")
+best_lambda <- cv_lasso$lambda.min
+
+best_coefs <- coef(cv_lasso, s = best_lambda)
+
+```
+
+```{r echo=FALSE, results = 'hide', message=FALSE, warning=FALSE}
+set.seed(123)
+ridge_model <- glmnet(X, y, alpha = 0, family = "binomial")
+
+#determine the best lambda
+cv_ridge <- cv.glmnet(X, y, alpha = 0, family = "binomial", type.measure = "auc")
+best_ridge_lambda <- cv_ridge$lambda.min
+
+best_ridge_coefs <- coef(cv_ridge, s = best_ridge_lambda)
+
+
+```
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+#table 4: AUC statistics
+```
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+backward_model_table = backward_model|>
+  broom::tidy()|>
+  dplyr::select(term, estimate, std.error, p.value)
+colnames(backward_model_table) = c("Term", "Estimate","Standard Error", "P Value")
+knitr::kable(x = backward_model_table, caption = "Table 5: Backward Model Summary", digits = 3)
+```
+
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+forward_model_2table = forward_model_2|>
+  broom::tidy()|>
+  dplyr::select(term, estimate, std.error, p.value)
+colnames(forward_model_2table) = c("Term", "Estimate","Standard Error", "P Value")
+knitr::kable(x = forward_model_2table, caption = "Table 6: Forward Model Summary", digits = 3)
+```
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+lasso_table = lasso_model|>
+  broom::tidy()|>
+  dplyr::select(term, estimate, lambda, dev.ratio)
+colnames(lasso_table) = c("Term", "Estimate","Lambda", "Deviation Ratio")
+knitr::kable(x = lasso_table, caption = "Table 7: Lasso Model Summary", digits = 3)
+```
+
+
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+ridge_table = ridge_model|>
+  broom::tidy()|>
+  dplyr::select(term, estimate, lambda, dev.ratio)
+colnames(ridge_table) = c("Term", "Estimate","Lambda", "Deviation Ratio")
+knitr::kable(x = ridge_table, caption = "Table 8: Ridge Regression Summary", digits = 3)
+```
+
 
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
@@ -151,6 +243,7 @@ backward_model_table = backward_model|>
 colnames(backward_model_table) = c("Term", "Estimate","Standard Error", "P Value")
 knitr::kable(x = backward_model_table, caption = "Table 4: Backward Model Summary", digits = 3)
 ```
+
 
 # Figure 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
