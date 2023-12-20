@@ -22,20 +22,30 @@ After preprocessing the dataset, we subdivided our dataset into categorical and 
 
 For numerical variables, we employed boxplot visualizations to effectively represent their distribution patterns. As illustrated in **Figure 1**, these boxplots serve as a comprehensive visualization, which include potential outliers, important quartiles, and medians of all the numerical variables. <br>
 
-After gaining an initial understanding of the data trends, we employed both stepwise selection and regularization techniques like LASSO and Ridge Regression for selecting the most appropriate model.<br>
+Initially, a comprehensive model incorporating all available predictors was developed, targeting survival status as the response variable. The corresponding estimates, standard errors, and P-values are illustrated in details in **Table 2**. After gaining an initial understanding of the data trends, we employed both stepwise selection and regularization techniques like LASSO and Ridge Regression for selecting the most appropriate model.<br>
 
-Initially, a comprehensive model incorporating all available predictors was developed, targeting survival status as the response variable. The corresponding estimates, standard errors, and P-values are illustrated in details in **Table 2**. In addition, we conducted a series of diagnostic evaluations on this full model. Our first step in this process was to assess multicollinearity, the results of which are presented in the Variance Inflation Factor (VIF) table depicted in **Table 3**. After the implementation of stepwise selection methods, along with LASSO and Ridge Regression, we proceeded to evaluate the classification accuracy of all the models. This was achieved through the generation of Receiver Operating Characteristic (ROC) curves and the analysis of the Area Under the Curve (AUC) statistics. The summary of all AUC statistics are included in **Table 4**. In addition, all ROC curves arr illustrated with **Figure 2**, **Figure 3**, **Figure 4**, and **Figure 5**. 
+In addition, we conducted a series of diagnostic evaluations on this full model. Our first step in this process was to assess multicollinearity, the results of which are presented in the Variance Inflation Factor (VIF) table depicted in **Table 3**. After the implementation of stepwise selection methods, along with LASSO and Ridge Regression, we proceeded to evaluate the classification accuracy of all the models. This was achieved through the generation of Receiver Operating Characteristic (ROC) curves and the analysis of the Area Under the Curve (AUC) statistics. The summary of all AUC statistics are included in **Table 4**. In addition, all ROC curves are illustrated with **Figure 2**, **Figure 3**, **Figure 4**, and **Figure 5**. <br>
+
+Upon completing the process of variable selection, our analysis has yielded four distinct models, each characterized by a unique set of predictor variables. We used internal validation by splitting our dataset into traning and testing data since we couldn't collect new data to perform external validation. In addition, we used 10-fold validation to assess ability of shrinkage models(LASSO and Ridge Regression) to predict the testing data, and we referred to BIC and AIC scores when assessing the fit of backward and forward selection models. 
+
+
+
 
 # Assumption Checking
 
 
 # Result
 
-## Model Construction
+## Variable Selection
 
-Since our response variable `status` is a binary variable, we decided to implement a logistic regression in order to predict the risk of death based on variables selected. We selected our model variables in four distinct manners: two automatic approaches (both backward and forward selections) and two shrinkage methods(LASSO as well as Ridge Regression). The final models including all the variable selected by different methods are illustrated in **Table 5** to **Table 8**. <br>
+Since our response variable `status` is a binary variable, we decided to implement a logistic regression in order to predict the risk of death based on variables selected. We selected our model variables in four distinct manners: two automatic approaches (both backward and forward selections) and two shrinkage methods(LASSO as well as Ridge Regression). The final models including all the variable selected by different methods are illustrated in **Table 4**, **Table 5**, **Table 6**, and **Table 7** respectively. <br>
 
 ## Model Selection
+First, we closely examined the performance metrics of both backward and forward selection models, with particular emphasis on their AIC and BIC scores, as presented in **Table 8**. Our findings indicate a noticeable distinction between the two models. Specifically, the backward selection model demonstrated superior performance, if we solely assessed based on its lower AIC and BIC scores in comparison to the forward selection model.<br>
+
+To further validate these findings, we employed 10-fold cross-validation techniques on the two automatic research approaches. This procedure yielded insightful results regarding the accuracy of each model. The backward selection model exhibited a high degree of accuracy, achieving a score of 0.858854. The forward selection model, while slightly less accurate, still maintained a high accuracy level with a score of 0.8561146.<br>
+
+In addition, we implemented 10-fold validation on LASSO and Ridge Regression. The results are shown in 
 
 # Conclusion
 
@@ -124,7 +134,7 @@ full_model_tab = full_model|>
 broom::tidy()|>
 dplyr::select(term, estimate, std.error, p.value)
 colnames(full_model_tab) = c("Term", "Estimate","Standard Error", "P Value")
-knitr::kable(x = full_model_tab, caption = "Table 2: Full Model Summary", digits = 3)
+knitr::kable(x = full_model_tab, caption = "Full Model Summary", digits = 3)
 
 
 ```
@@ -137,7 +147,7 @@ vif_full = check_collinearity(full_model)|>
          Tolerance_low = Tolerance_CI_low,
          Tolerance_high = Tolerance_CI_high)|>
       as_tibble() 
-knitr::kable(x = vif_full, caption = "Table 3: VIF for Full Model", digits = 1)
+knitr::kable(x = vif_full, caption = "VIF for Full Model", digits = 1)
 
 ```
 
@@ -202,7 +212,7 @@ backward_model_table = backward_model|>
   broom::tidy()|>
   dplyr::select(term, estimate, std.error, p.value)
 colnames(backward_model_table) = c("Term", "Estimate","Standard Error", "P Value")
-knitr::kable(x = backward_model_table, caption = "Table 5: Backward Model Summary", digits = 3)
+knitr::kable(x = backward_model_table, caption = "Backward Model Summary", digits = 3)
 ```
 
 
@@ -212,7 +222,7 @@ forward_model_2table = forward_model_2|>
   broom::tidy()|>
   dplyr::select(term, estimate, std.error, p.value)
 colnames(forward_model_2table) = c("Term", "Estimate","Standard Error", "P Value")
-knitr::kable(x = forward_model_2table, caption = "Table 6: Forward Model Summary", digits = 3)
+knitr::kable(x = forward_model_2table, caption = "Forward Model Summary", digits = 3)
 ```
 
 
@@ -221,7 +231,7 @@ lasso_table = lasso_model|>
   broom::tidy()|>
   dplyr::select(term, estimate, lambda, dev.ratio)
 colnames(lasso_table) = c("Term", "Estimate","Lambda", "Deviation Ratio")
-knitr::kable(x = lasso_table, caption = "Table 7: Lasso Model Summary", digits = 3)
+knitr::kable(x = lasso_table, caption = "Lasso Model Summary", digits = 3)
 ```
 
 
@@ -231,17 +241,22 @@ ridge_table = ridge_model|>
   broom::tidy()|>
   dplyr::select(term, estimate, lambda, dev.ratio)
 colnames(ridge_table) = c("Term", "Estimate","Lambda", "Deviation Ratio")
-knitr::kable(x = ridge_table, caption = "Table 8: Ridge Regression Summary", digits = 3)
+knitr::kable(x = ridge_table, caption = "Ridge Regression Summary", digits = 3)
 ```
 
 
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
-backward_model_table = backward_model|>
-  broom::tidy()|>
-  dplyr::select(term, estimate, std.error, p.value)
-colnames(backward_model_table) = c("Term", "Estimate","Standard Error", "P Value")
-knitr::kable(x = backward_model_table, caption = "Table 4: Backward Model Summary", digits = 3)
+library(tibble)
+library(knitr)
+aic_back = AIC(backward_model)
+aic_forward = AIC(forward_model_2)
+bic_back = BIC(backward_model)
+bic_forward = BIC(forward_model_2)
+
+table_9 <- cbind(aic_back,aic_forward,bic_back,bic_forward)|>
+  as.tibble()
+kable(x = table_9, caption = "AIC & BIC Scores for Backward and Forward Selection Model")
 ```
 
 
