@@ -68,6 +68,9 @@ knitr::kable(x = summary_catego, caption = "Summary Statistics of Categorical Va
 
 ```
 
+
+
+
 # Exploratory Analysis
 
 ## Checking Association Between Numerical Variables
@@ -89,10 +92,22 @@ boxplot(breastcancer_clean$tumor_size, main='Tumor Size')
 boxplot(breastcancer_clean$regional_node_examined,main='Node Examined' )
 boxplot(breastcancer_clean$reginol_node_positive, main='Positive Node')
 boxplot(breastcancer_clean$node_positive_prop, main='Proportion of Positive Nodes')
+
 ```
 
 * `tumor_size` has substantial amounts of outliers. <br>
 * `reginol_node_positive` and `node_positive_prop` are highly correlated. 
+
+```{r}
+breastcancer_num|>
+  skimr::skim()
+ 
+  colnames(summary_catego) = c("Variable", "Missing", "Unique Counts", "Top Counts")
+
+knitr::kable(x = summary_catego, caption = "Summary Statistics of Categorical Variables", digits = 3)
+```
+
+
 
 ## Checking Association Between Categorical Variables
 
@@ -149,6 +164,11 @@ backward_model <- step(full_model, direction = "backward")
 
 ```{r}
 summary(backward_model)
+backward_model_table = backward_model|>
+  broom::tidy()|>
+  dplyr::select(term, estimate, std.error, p.value)
+colnames(backward_model_table) = c("Term", "Estimate","Standard Error", "P Value")
+knitr::kable(x = backward_model_table, caption = "Table 4: Backward Model Summary", digits = 3)
 ```
 
 ## Backward Model Predictions
@@ -158,7 +178,8 @@ predictions_backward <- predict(backward_model, newdata = test_data1)
 # Viewing predictions
 print(predictions_backward)
 roc_curve_backward <- roc(response = as.matrix(test_data$status), predictor = as.numeric(predictions_backward) )
-auc(roc_curve_backward)
+auc(roc_curve_backward)|>
+  knitr::kable(caption = "AUC for Backward Selection Model")
 
 #plot the roc curve
 plot(roc_curve_backward, main = "ROC Curve", col = "yellow")
@@ -239,6 +260,7 @@ auc(roc_curve_forward_2)
 #plot the roc curve
 plot(roc_curve_forward_2, main = "ROC Curve", col = "green")
 ```
+
 
 ```{r}
 check_collinearity(forward_model_2)
@@ -376,8 +398,95 @@ plot(roc_curve_ridge, main = "ROC Curve", col = "blue")
 AUC = 0.6897
 Takes 5 predictors into consideration.
 
+## AUC statistics
+```{r}
+auc_backward = auc(roc_curve_backward)
+auc_forward = auc(roc_curve_forward_2)
+auc_LASSO = auc(roc_curve)
+auc_Ridge = auc(roc_curve_ridge)
+my_table <- cbind(auc_backward,auc_forward,auc_LASSO,auc_Ridge)|>
+  as.tibble()
+
+knitr::kable(x = my_table, caption = "Table 3: VIF for Full Model", digits = 5)
+```
 
 
+## Evaluate Model Fit
+### ANOVA: testing for nested models
 
+```{r}
+anova(backward_model, full_model, test = "Chisq")|>
+  as.tibble()
+```
+
+```{r}
+anova(forward_model_2, full_model, test = "Chisq")|>
+  as.tibble()
+```
+
+### AIC and BIC
+
+```{r}
+AIC(backward_model)
+AIC(forward_model_2)
+BIC(backward_model)
+BIC(forward_model_2)
+```
+
+### Internal Validation: Forward Selection
+
+```{r}
+library(caret)
+train_control <- trainControl(method = "cv", number = 10)
+cv_model <- train(status ~ n_stage + progesterone_status + differentiate + node_positive_prop + race + age + estrogen_status + tumor_size + regional_node_examined + marital_status + reginol_node_positive, data = breastcancer_clean, method = "glm", family = "binomial", trControl = train_control)
+```
+
+### Internal Validation: Backward Selection
+
+```{r}
+library(caret)
+train_control_backward <- trainControl(method = "cv", number = 10)
+cv_model_backward <- train(status ~ age + race + t_stage + n_stage + differentiate + estrogen_status + 
+    progesterone_status + regional_node_examined + reginol_node_positive + 
+    node_positive_prop, data = breastcancer_clean, method = "glm", family = "binomial", trControl = train_control_backward)
+```
+
+```{r}
+X <- as.matrix(train_data[, -which(names(train_data) == "status")])
+y <- train_data$status
+
+set.seed(123)
+lasso_model <- glmnet(X, y, alpha = 1, family = "binomial")
+
+#determine the best lambda
+cv_lasso <- cv.glmnet(X, y, alpha = 1, family = "binomial", type.measure = "auc")
+best_lambda <- cv_lasso$lambda.min
+
+best_coefs <- coef(cv_lasso, s = best_lambda)
+
+library(caret)
+train_control_lasso <- trainControl(method = "cv", number = 10)
+lasso_model <- train(X, y, method = "glmnet", trControl = train_control_lasso, tuneLength = 10)
+
+```
+
+### LASSO 
+0.4(alpha)    0.0353906553(lambda)  0.8498958(accuracy)  0.052025556(Kappa)
+
+```{r}
+set.seed(123)
+ridge_model <- glmnet(X, y, alpha = 0, family = "binomial")
+
+#determine the best lambda
+cv_ridge <- cv.glmnet(X, y, alpha = 0, family = "binomial", type.measure = "auc")
+best_ridge_lambda <- cv_ridge$lambda.min
+
+best_ridge_coefs <- coef(cv_ridge, s = best_ridge_lambda)
+train_control_ridge <- trainControl(method = "cv", number = 10)
+ridge_model <- train(X, y, method = "glmnet", trControl = train_control_ridge, tuneLength = 10,
+                     tuneGrid = expand.grid(alpha = 0, lambda = best_ridge_lambda))
+```
+Accuracy   Kappa      
+  0.8470576  0.003876853
 
 

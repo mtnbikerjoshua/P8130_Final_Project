@@ -252,6 +252,57 @@ boxplot(breastcancer_clean$node_positive_prop, main='Proportion of Positive Node
 - `reginol_node_positive` and `node_positive_prop` are highly
   correlated.
 
+``` r
+breastcancer_num|>
+  skimr::skim()
+```
+
+|                                                  |                  |
+|:-------------------------------------------------|:-----------------|
+| Name                                             | breastcancer_num |
+| Number of rows                                   | 4024             |
+| Number of columns                                | 5                |
+| \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_   |                  |
+| Column type frequency:                           |                  |
+| numeric                                          | 5                |
+| \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_ |                  |
+| Group variables                                  | None             |
+
+Data summary
+
+**Variable type: numeric**
+
+| skim_variable          | n_missing | complete_rate |  mean |    sd |    p0 |  p25 |   p50 |  p75 | p100 | hist  |
+|:-----------------------|----------:|--------------:|------:|------:|------:|-----:|------:|-----:|-----:|:------|
+| age                    |         0 |             1 | 53.97 |  8.96 | 30.00 | 47.0 | 54.00 | 61.0 |   69 | ▁▃▇▇▇ |
+| tumor_size             |         0 |             1 | 30.47 | 21.12 |  1.00 | 16.0 | 25.00 | 38.0 |  140 | ▇▃▁▁▁ |
+| regional_node_examined |         0 |             1 | 14.36 |  8.10 |  1.00 |  9.0 | 14.00 | 19.0 |   61 | ▇▇▁▁▁ |
+| reginol_node_positive  |         0 |             1 |  4.16 |  5.11 |  1.00 |  1.0 |  2.00 |  5.0 |   46 | ▇▁▁▁▁ |
+| node_positive_prop     |         0 |             1 |  0.33 |  0.29 |  0.02 |  0.1 |  0.21 |  0.5 |    1 | ▇▃▂▁▂ |
+
+``` r
+  colnames(summary_catego) = c("Variable", "Missing", "Unique Counts", "Top Counts")
+
+knitr::kable(x = summary_catego, caption = "Summary Statistics of Categorical Variables", digits = 3)
+```
+
+| Variable            | Missing | Unique Counts | Top Counts                                |
+|:--------------------|--------:|--------------:|:------------------------------------------|
+| race                |       0 |             3 | Whi: 3413, Oth: 320, Bla: 291             |
+| marital_status      |       0 |             5 | Mar: 2643, Sin: 615, Div: 486, Wid: 235   |
+| t_stage             |       0 |             4 | T2: 1786, T1: 1603, T3: 533, T4: 102      |
+| n_stage             |       0 |             3 | N1: 2732, N2: 820, N3: 472                |
+| x6th_stage          |       0 |             5 | IIA: 1305, IIB: 1130, III: 1050, III: 472 |
+| differentiate       |       0 |             4 | Mod: 2351, Poo: 1111, Wel: 543, Und: 19   |
+| grade               |       0 |             4 | 2: 2351, 3: 1111, 1: 543, ana: 19         |
+| a_stage             |       0 |             2 | Reg: 3932, Dis: 92                        |
+| estrogen_status     |       0 |             2 | Pos: 3755, Neg: 269                       |
+| progesterone_status |       0 |             2 | Pos: 3326, Neg: 698                       |
+| status              |       0 |             2 | 0: 3408, 1: 616                           |
+| node_positive_prop  |       0 |            NA | NA                                        |
+
+Summary Statistics of Categorical Variables
+
 ## Checking Association Between Categorical Variables
 
 ``` r
@@ -280,9 +331,9 @@ rules <- apriori(breastcancer_cag, parameter = list(supp = 0.001, conf = 0.8))
     ## set transactions ...[36 item(s), 4024 transaction(s)] done [0.00s].
     ## sorting and recoding items ... [36 item(s)] done [0.00s].
     ## creating transaction tree ... done [0.00s].
-    ## checking subsets of size 1 2 3 4 5 6 7 8 9 10 done [0.06s].
+    ## checking subsets of size 1 2 3 4 5 6 7 8 9 10 done [0.07s].
     ## writing ... [424628 rule(s)] done [0.08s].
-    ## creating S4 object  ... done [0.13s].
+    ## creating S4 object  ... done [0.14s].
 
 ``` r
 # Inspect the top 5 rules
@@ -524,6 +575,36 @@ summary(backward_model)
     ## AIC: 2992.2
     ## 
     ## Number of Fisher Scoring iterations: 5
+
+``` r
+backward_model_table = backward_model|>
+  broom::tidy()|>
+  dplyr::select(term, estimate, std.error, p.value)
+colnames(backward_model_table) = c("Term", "Estimate","Standard Error", "P Value")
+knitr::kable(x = backward_model_table, caption = "Table 4: Backward Model Summary", digits = 3)
+```
+
+| Term                               | Estimate | Standard Error | P Value |
+|:-----------------------------------|---------:|---------------:|--------:|
+| (Intercept)                        |   -4.043 |          0.364 |   0.000 |
+| age                                |    0.024 |          0.005 |   0.000 |
+| raceBlack                          |    0.571 |          0.159 |   0.000 |
+| raceOther                          |   -0.436 |          0.202 |   0.031 |
+| t_stageT2                          |    0.415 |          0.113 |   0.000 |
+| t_stageT3                          |    0.537 |          0.149 |   0.000 |
+| t_stageT4                          |    1.081 |          0.243 |   0.000 |
+| n_stageN2                          |    0.359 |          0.133 |   0.007 |
+| n_stageN3                          |    0.483 |          0.239 |   0.043 |
+| differentiatePoorly differentiated |    0.390 |          0.105 |   0.000 |
+| differentiateUndifferentiated      |    1.343 |          0.527 |   0.011 |
+| differentiateWell differentiated   |   -0.514 |          0.183 |   0.005 |
+| estrogen_statusNegative            |    0.737 |          0.177 |   0.000 |
+| progesterone_statusNegative        |    0.598 |          0.127 |   0.000 |
+| regional_node_examined             |   -0.021 |          0.011 |   0.053 |
+| reginol_node_positive              |    0.056 |          0.020 |   0.005 |
+| node_positive_prop                 |    0.603 |          0.314 |   0.054 |
+
+Table 4: Backward Model Summary
 
 ## Backward Model Predictions
 
@@ -939,17 +1020,22 @@ print(predictions_backward)
 
 ``` r
 roc_curve_backward <- roc(response = as.matrix(test_data$status), predictor = as.numeric(predictions_backward) )
-auc(roc_curve_backward)
+auc(roc_curve_backward)|>
+  knitr::kable(caption = "AUC for Backward Selection Model")
 ```
 
-    ## Area under the curve: 0.7649
+|         x |
+|----------:|
+| 0.7649244 |
+
+AUC for Backward Selection Model
 
 ``` r
 #plot the roc curve
 plot(roc_curve_backward, main = "ROC Curve", col = "yellow")
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+![](model_building_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
 
 ## Forward Selection
 
@@ -1614,7 +1700,7 @@ auc(roc_curve_forward)
 plot(roc_curve_forward, main = "ROC Curve", col = "red")
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+![](model_building_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 ``` r
 check_collinearity(forward_model)
@@ -2355,7 +2441,7 @@ auc(roc_curve_forward_1)
 plot(roc_curve_forward_1, main = "ROC Curve", col = "red")
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+![](model_building_files/figure-gfm/unnamed-chunk-18-1.png)<!-- -->
 
 ``` r
 check_collinearity(forward_model_1)
@@ -3036,7 +3122,7 @@ auc(roc_curve_forward_2)
 plot(roc_curve_forward_2, main = "ROC Curve", col = "green")
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+![](model_building_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
 
 ``` r
 check_collinearity(forward_model_2)
@@ -3217,7 +3303,7 @@ auc(roc_curve)
 plot(roc_curve, main = "ROC Curve", col = "green")
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-26-1.png)<!-- --> \###
+![](model_building_files/figure-gfm/unnamed-chunk-27-1.png)<!-- --> \###
 Comment
 
 AUC = 0.6916 Only 4 predictors
@@ -3259,8 +3345,136 @@ auc(roc_curve_ridge)
 plot(roc_curve_ridge, main = "ROC Curve", col = "blue")
 ```
 
-![](model_building_files/figure-gfm/unnamed-chunk-28-1.png)<!-- -->
+![](model_building_files/figure-gfm/unnamed-chunk-29-1.png)<!-- -->
 
 ### Comment
 
 AUC = 0.6897 Takes 5 predictors into consideration.
+
+## AUC statistics
+
+``` r
+auc_backward = auc(roc_curve_backward)
+auc_forward = auc(roc_curve_forward_2)
+auc_LASSO = auc(roc_curve)
+auc_Ridge = auc(roc_curve_ridge)
+my_table <- cbind(auc_backward,auc_forward,auc_LASSO,auc_Ridge)|>
+  as.tibble()
+
+knitr::kable(x = my_table, caption = "Table 3: VIF for Full Model", digits = 5)
+```
+
+| auc_backward | auc_forward | auc_LASSO | auc_Ridge |
+|-------------:|------------:|----------:|----------:|
+|      0.76492 |     0.76432 |   0.69161 |   0.68965 |
+
+Table 3: VIF for Full Model
+
+## Evaluate Model Fit
+
+### ANOVA: testing for nested models
+
+``` r
+anova(backward_model, full_model, test = "Chisq")|>
+  as.tibble()
+```
+
+    ## # A tibble: 2 × 5
+    ##   `Resid. Df` `Resid. Dev`    Df Deviance `Pr(>Chi)`
+    ##         <dbl>        <dbl> <dbl>    <dbl>      <dbl>
+    ## 1        4007        2958.    NA    NA        NA    
+    ## 2        3998        2949.     9     9.62      0.382
+
+``` r
+anova(forward_model_2, full_model, test = "Chisq")|>
+  as.tibble()
+```
+
+    ## # A tibble: 2 × 5
+    ##   `Resid. Df` `Resid. Dev`    Df Deviance `Pr(>Chi)`
+    ##         <dbl>        <dbl> <dbl>    <dbl>      <dbl>
+    ## 1        4005        2966.    NA     NA      NA     
+    ## 2        3998        2949.     7     17.7     0.0132
+
+### AIC and BIC
+
+``` r
+AIC(backward_model)
+```
+
+    ## [1] 2992.229
+
+``` r
+AIC(forward_model_2)
+```
+
+    ## [1] 3004.342
+
+``` r
+BIC(backward_model)
+```
+
+    ## [1] 3099.33
+
+``` r
+BIC(forward_model_2)
+```
+
+    ## [1] 3124.043
+
+### Internal Validation: Forward Selection
+
+``` r
+library(caret)
+train_control <- trainControl(method = "cv", number = 10)
+cv_model <- train(status ~ n_stage + progesterone_status + differentiate + node_positive_prop + race + age + estrogen_status + tumor_size + regional_node_examined + marital_status + reginol_node_positive, data = breastcancer_clean, method = "glm", family = "binomial", trControl = train_control)
+```
+
+### Internal Validation: Backward Selection
+
+``` r
+library(caret)
+train_control_backward <- trainControl(method = "cv", number = 10)
+cv_model_backward <- train(status ~ age + race + t_stage + n_stage + differentiate + estrogen_status + 
+    progesterone_status + regional_node_examined + reginol_node_positive + 
+    node_positive_prop, data = breastcancer_clean, method = "glm", family = "binomial", trControl = train_control_backward)
+```
+
+``` r
+X <- as.matrix(train_data[, -which(names(train_data) == "status")])
+y <- train_data$status
+
+set.seed(123)
+lasso_model <- glmnet(X, y, alpha = 1, family = "binomial")
+
+#determine the best lambda
+cv_lasso <- cv.glmnet(X, y, alpha = 1, family = "binomial", type.measure = "auc")
+best_lambda <- cv_lasso$lambda.min
+
+best_coefs <- coef(cv_lasso, s = best_lambda)
+
+library(caret)
+train_control_lasso <- trainControl(method = "cv", number = 10)
+lasso_model <- train(X, y, method = "glmnet", trControl = train_control_lasso, tuneLength = 10)
+```
+
+### LASSO
+
+0.4(alpha) 0.0353906553(lambda) 0.8498958(accuracy) 0.052025556(Kappa)
+
+``` r
+set.seed(123)
+ridge_model <- glmnet(X, y, alpha = 0, family = "binomial")
+
+#determine the best lambda
+cv_ridge <- cv.glmnet(X, y, alpha = 0, family = "binomial", type.measure = "auc")
+best_ridge_lambda <- cv_ridge$lambda.min
+
+best_ridge_coefs <- coef(cv_ridge, s = best_ridge_lambda)
+train_control_ridge <- trainControl(method = "cv", number = 10)
+ridge_model <- train(X, y, method = "glmnet", trControl = train_control_ridge, tuneLength = 10,
+                     tuneGrid = expand.grid(alpha = 0, lambda = best_ridge_lambda))
+```
+
+Accuracy Kappa  
+0.8470576 0.003876853
